@@ -43,11 +43,14 @@ By default, this command writes built artifacts to `.aws-sam/build` folder.
 
 ### Local development
 
-**Invoking function locally through local API Gateway**
+**Invoking function with create event**
 
 ```bash
-sam local start-api
+sam local invoke -e test.json
 ```
+
+test.json is an example event. This will not work because it is not yet as it doesn't have a yaml file.
+
 
 If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
 
