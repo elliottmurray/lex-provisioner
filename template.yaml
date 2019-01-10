@@ -1,18 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-    sam-app
+    Chatbot provisioner
 
-    Sample SAM Template for sam-app
+    Lex Provisioner SAM Template
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
     Function:
         Timeout: 3
 
-
 Resources:
-
     LexProvisioner:
         Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
         Properties:
@@ -21,14 +19,14 @@ Resources:
             Runtime: python3.7
             Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
                 Variables:
-                    PARAM1: VALUE            
-
+                    PARAM1: VALUE
 Outputs:
-
     LexProvisioner:
-      Description: "Hello World Lambda Function ARN"
+      Description: "Lambda Provisioner Function ARN"
       Value: !GetAtt LexProvisioner.Arn
-
-    HelloWorldFunctionIamRole:
-      Description: "Implicit IAM Role created for Hello World function"
-      Value: !GetAtt HelloWorldFunctionRole.Arn
+      Export:
+        Name: !Sub "${AWS::StackName}-LexProvisioner"
+    LexProvisionerIamRole:
+      Description: "Implicit IAM Role created for LexProvisioner function"
+      Value: !GetAtt LexProvisionerRole.Arn
+      
