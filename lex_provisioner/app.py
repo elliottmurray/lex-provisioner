@@ -2,7 +2,6 @@ import json
 
 import requests
 
-
 import os
 import json
 import crhelper
@@ -84,7 +83,7 @@ def _add_prefix(lex_definition, name_prefix, aws_region, aws_account_id):
         if 'dialogCodeHook' in intent:
             intent['dialogCodeHook']['uri'] = _get_function_arn(
                 intent['dialogCodeHook']['uri'], aws_region, aws_account_id, name_prefix
-            )    
+            )
         intent['fulfillmentActivity']['codeHook']['uri'] = _get_function_arn(
             intent['fulfillmentActivity']['codeHook']['uri'], aws_region, aws_account_id, name_prefix
         )
@@ -153,10 +152,13 @@ def delete(event, context):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    lex_definition, lex_bot_builder = _lex_builder_instance(event, context)
-    lex_bot_builder.delete(lex_definition)
-    return
-
+    try:
+      lex_definition, lex_bot_builder = _lex_builder_instance(event, context)
+      lex_bot_builder.delete(lex_definition)
+      return
+    except FileNotFoundError as ex:
+      logger.error("Could not find lex definition file so just exiting.")
+      return
 
 def lambda_handler(event, context):
     """
@@ -164,7 +166,7 @@ def lambda_handler(event, context):
     """
     # update the logger with event info
     global logger
-    
+
     logger = crhelper.log_config(event)
     logger.info('event: %s', json.dumps(event, indent=4, sort_keys=True, default=str))
     return crhelper.cfn_handler(event, context, create, update, delete, logger,

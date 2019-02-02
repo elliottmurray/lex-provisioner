@@ -86,7 +86,7 @@ class LexBotBuilder:
         elif 'fulfillmentActivity' in intent_definition:
             if 'codeHook' in intent_definition['fulfillmentActivity']:
                 code_hook = intent_definition['fulfillmentActivity']['codeHook']
-        
+
         # TODO if the intent does not need to invoke a lambda, create it
         if code_hook:
             # If the intent needs to invoke a lambda function, we must give it permission to do so
@@ -217,6 +217,10 @@ class LexBotBuilder:
                 self._lex_sdk.delete_bot(name=bot_name)
                 self._logger.info('deleted bot: %s', bot_name)
                 break
+            except NotFoundException as ex:
+                self._logger.warning('Lex can not call delete_bot on deleted bot %s.',
+                bot_name)
+
             except Exception as ex:
                 self._logger.warning('Lex delete_bot call failed')
                 self._logger.warning(ex)
@@ -259,7 +263,7 @@ class LexBotBuilder:
                     else:
                         self._logger.error('Lex delete_intent call max retries')
                         raise
-    
+
     def _delete_slot_types(self, slot_types_definition):
         '''Delete all slot_type'''
         for slot_type in slot_types_definition:
@@ -305,7 +309,7 @@ class LexBotBuilder:
             self._delete_slot_types(lex_definition['slot_types'])
         except Exception as ex:
             delete_failed = True
-        
+
         if delete_failed:
             raise Exception('See logs for details on what resources failed to delete')
 
