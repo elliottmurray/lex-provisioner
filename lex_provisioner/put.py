@@ -83,9 +83,6 @@ class LexBotBuilder:
         code_hook = None
         if 'dialogCodeHook' in intent_definition:
             code_hook = intent_definition['dialogCodeHook']
-        elif 'fulfillmentActivity' in intent_definition:
-            if 'codeHook' in intent_definition['fulfillmentActivity']:
-                code_hook = intent_definition['fulfillmentActivity']['codeHook']
 
         # TODO if the intent does not need to invoke a lambda, create it
         if code_hook:
@@ -214,6 +211,8 @@ class LexBotBuilder:
         count = self.MAX_DELETE_TRIES
         while True:
             try:
+                self._lex_sdk.get_bot(name=bot_name, versionOrAlias='')
+
                 self._lex_sdk.delete_bot(name=bot_name)
                 self._logger.info('deleted bot: %s', bot_name)
                 break

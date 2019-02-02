@@ -100,6 +100,8 @@ def _lex_builder_instance(event, context):
     resource_properties = event.get('ResourceProperties')
 
     name_prefix = resource_properties.get('NamePrefix')
+    dialog_codehook = resource_properties.get('dialogCodeHookUri')
+
     logger.info('name prefix is: %s', name_prefix)
     aws_account_id = context.invoked_function_arn.split(':')[4]
     aws_region = os.environ['AWS_REGION']
