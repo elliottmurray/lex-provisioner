@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from hello_world import app
+from lex_provisioner import app
 
 
 @pytest.fixture()
