@@ -1,9 +1,12 @@
 from collections import namedtuple
 import json
+import requests
 
+import mock
 import pytest
+from pytest_mock import mocker
 
-from lex_provisioner import app
+import app
 
 
 @pytest.fixture()

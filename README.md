@@ -25,11 +25,18 @@ This is a sample template for sam-app - Below is a brief explanation of what we 
 
 ## Setup process
 
+### Testing locally
+Requires python 3.7.2 virtualenv. I use direnv and layouts to set this up.
+
+```bash
+tox -r
+```
+
 ### Building the project
 
 [AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html) with the application as well as its dependencies. When you make changes to your source code or dependency manifest,
 run the following command to build your project local testing and deployment:
- 
+
 ```bash
 sam build
 ```
@@ -38,7 +45,7 @@ If your dependencies contain native modules that need to be compiled specificall
 ```bash
 sam build --use-container
 ```
- 
+
 By default, this command writes built artifacts to `.aws-sam/build` folder.
 
 ### Local development
@@ -110,11 +117,11 @@ After deployment is complete you can run the following command to retrieve the A
 aws cloudformation describe-stacks \
     --stack-name sam-app \
     --query 'Stacks[].Outputs'
-``` 
+```
 
 ## Testing
 
-We use **Pytest** and **pytest-mock** for testing our code and you can install it using pip: ``pip install pytest pytest-mock`` 
+We use **Pytest** and **pytest-mock** for testing our code and you can install it using pip: ``pip install pytest pytest-mock``
 
 Next, we run `pytest` against our `tests` folder to run our initial unit tests:
 
