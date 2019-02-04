@@ -90,7 +90,6 @@ def timeout(event, context, logger):
 
 # Handler function
 def cfn_handler(event, context, create, update, delete, logger, init_failed):
-
     logger.info("Lambda RequestId: %s CloudFormation RequestId: %s" %
                 (context.aws_request_id, event['RequestId']))
 
