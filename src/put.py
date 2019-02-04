@@ -190,15 +190,15 @@ class LexBotBuilder:
             slot_type_versions[name] = version_response['version']
         return slot_type_versions
 
-    def put(self, lex_definition):
+    def put(self, bot_name):
         """Create/Update lex-bot resources; bot, intents, slot_types"""
-        slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
+        # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
 
-        intents_definition = self._replace_slot_type_version(lex_definition['intents'], slot_type_versions)
-        intent_versions = self._put_intents(intents_definition)
+        # intents_definition = self._replace_slot_type_version(lex_definition['intents'], slot_type_versions)
+        # intent_versions = self._put_intents(intents_definition)
 
-        bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
-        bot_response = self._put_bot(lex_definition['bot'])
+        # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
+        bot_response = self._put_bot(bot_name)
         return bot_response
 
 

@@ -120,6 +120,13 @@ def create(event, context):
     """
     lex_definition, lex_bot_builder = _lex_builder_instance(event, context)
 
+    resource_properties = event.get('ResourceProperties')
+
+    name_prefix = resource_properties.get('NamePrefix')
+    bot_name = event['LogicalResourceId'] + name_prefix
+
+
+
     bot_put_response = lex_bot_builder.put(lex_definition)
     response_data = dict(
         BotName=lex_definition['bot']['name'],
