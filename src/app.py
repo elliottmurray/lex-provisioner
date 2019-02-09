@@ -111,27 +111,26 @@ def _lex_builder_instance(event, context):
 
     return lex_definition_with_prefix, LexBotBuilder(logger)
 
-def create(event, context):
+def create(event, context, lex_sdk=None):
     """
     Handle Create events
 
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    lex_definition, lex_bot_builder = _lex_builder_instance(event, context)
-
+    lex_bot_builder = LexBotBuilder(logger, lex_sdk)
     resource_properties = event.get('ResourceProperties')
 
     name_prefix = resource_properties.get('NamePrefix')
-    bot_name = event['LogicalResourceId'] + name_prefix
+
+    bot_name = name_prefix + event['LogicalResourceId']
 
 
-
-    bot_put_response = lex_bot_builder.put(lex_definition)
-    response_data = dict(
-        BotName=lex_definition['bot']['name'],
-        BotVersion=bot_put_response['version']
-    )
+    bot_put_response = lex_bot_builder.put(bot_name)
+    # response_data = dict(
+    #     BotName=lex_definition['bot']['name'],
+    #     BotVersion=bot_put_response['version']
+    # )
 
     return response_data
 
