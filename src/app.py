@@ -127,12 +127,12 @@ def create(event, context, lex_sdk=None):
 
 
     bot_put_response = lex_bot_builder.put(bot_name)
-    # response_data = dict(
-    #     BotName=lex_definition['bot']['name'],
-    #     BotVersion=bot_put_response['version']
-    # )
+    response_data = dict(
+        BotName=bot_put_response['name'],
+        BotVersion=bot_put_response['version']
+    )
 
-    return bot_put_response
+    return response_data
 
 
 def update(event, context):

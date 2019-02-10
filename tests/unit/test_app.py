@@ -128,10 +128,20 @@ def test_create(cfn_event, mocker):
     expected_get_params = {
         'name': 'pythontestLexBot', 'versionOrAlias': '$LATEST'}
 
+    create_bot_version_response = {
+      'name': 'pythontestLexBot',
+      'version': '$LATEST'
+    }
+
+    create_bot_version_params = {
+      'checksum': 'rnd value',
+      'name': 'pythontestLexBot'
+    }
+
     with Stubber(lex) as stubber:
         stubber.add_response('get_bot', get_response, expected_get_params)
         stubber.add_response('put_bot', put_response, expected_put_params)
-        stubber.add_response('create_bot_version', {}, {'checksum': 'rnd value', 'name': 'pythontestLexBot'})
+        stubber.add_response('create_bot_version', create_bot_version_response, create_bot_version_params)
 
         # service_response = lex.put_bot(name='pythontestLexBot', locale='en-US', childDirected=True)
         # service_response = lex.get_bot(name='pythontestLexBot', versionOrAlias='$LATEST')

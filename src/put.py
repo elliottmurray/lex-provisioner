@@ -81,6 +81,7 @@ class LexBotBuilder:
             self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
         version_response = self._lex_sdk.create_bot_version(
             name=bot_name, checksum=update_response['checksum'])
+        print(version_response)
         return version_response
 
     def _get_intent_arn(self, intent_name, aws_region, aws_account_id):
