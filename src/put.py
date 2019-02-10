@@ -223,7 +223,8 @@ class LexBotBuilder:
 
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
         bot_properties = {
-            "name": "test",
+            "name": bot_name,
+            "locale": ' en-US',
             "abortStatement": {
                 "messages": [
                     {

@@ -8,7 +8,7 @@ import pytest
 from pytest_mock import mocker
 from unittest.mock import MagicMock
 import botocore.session
-from botocore.stub import Stubber
+from botocore.stub import Stubber, ANY
 import datetime
 
 import app
@@ -84,6 +84,7 @@ def test_create(cfn_event, mocker):
     put_response = {
         "name": "test bot",
         "locale": "en-US",
+        "checksum": 'rnd value',
         "abortStatement": {
             "messages": [
                 {
@@ -113,10 +114,16 @@ def test_create(cfn_event, mocker):
         "version": "$LATEST"
     }
 
-    expected_put_params = {'name': 'pythontestLexBot',
-                           "locale": "en-US",
-                           "childDirected": True
-                           }
+    expected_put_params = {'abortStatement': ANY,
+      'checksum': ANY,
+      'childDirected': False,
+      'clarificationPrompt': ANY,
+      'description': 'friendly AI chatbot overlord',
+      'idleSessionTTLInSeconds': ANY,
+      'name': 'pythontestLexBot',
+      'locale': ' en-US',
+      'processBehavior': 'BUILD'
+    }
 
     expected_get_params = {
         'name': 'pythontestLexBot', 'versionOrAlias': '$LATEST'}
@@ -124,6 +131,7 @@ def test_create(cfn_event, mocker):
     with Stubber(lex) as stubber:
         stubber.add_response('get_bot', get_response, expected_get_params)
         stubber.add_response('put_bot', put_response, expected_put_params)
+        stubber.add_response('create_bot_version', {}, {'checksum': 'rnd value', 'name': 'pythontestLexBot'})
 
         # service_response = lex.put_bot(name='pythontestLexBot', locale='en-US', childDirected=True)
         # service_response = lex.get_bot(name='pythontestLexBot', versionOrAlias='$LATEST')

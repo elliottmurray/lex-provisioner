@@ -132,7 +132,7 @@ def create(event, context, lex_sdk=None):
     #     BotVersion=bot_put_response['version']
     # )
 
-    return response_data
+    return bot_put_response
 
 
 def update(event, context):
