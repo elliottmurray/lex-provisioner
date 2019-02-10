@@ -126,7 +126,7 @@ def create(event, context, lex_sdk=None):
     bot_name = name_prefix + event['LogicalResourceId']
 
 
-    bot_put_response = lex_bot_builder.put(bot_name)
+    bot_put_response = lex_bot_builder.put(bot_name, resource_properties)
     response_data = dict(
         BotName=bot_put_response['name'],
         BotVersion=bot_put_response['version']

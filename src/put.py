@@ -215,7 +215,7 @@ class LexBotBuilder:
             slot_type_versions[name] = version_response['version']
         return slot_type_versions
 
-    def put(self, bot_name):
+    def put(self, bot_name, resource_properties):
         """Create/Update lex-bot resources; bot, intents, slot_types"""
         # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
 
@@ -245,7 +245,7 @@ class LexBotBuilder:
                     }
                 ]
             },
-            "description": "friendly AI chatbot overlord",
+            "description": resource_properties['description'],
             "idleSessionTTLInSeconds": 3000
         }
 

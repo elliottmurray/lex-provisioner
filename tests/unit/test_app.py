@@ -26,6 +26,7 @@ def cfn_event():
             "NamePrefix": "pythontest",
             "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
             "loglevel": "info",
+            "description": "friendly AI chatbot overlord",
             "intents": ["test1", "test2"]
         },
         "ResourceType": "Custom::LexBot",
@@ -35,11 +36,10 @@ def cfn_event():
     }
 
 
-def test_create(cfn_event, mocker):
-    # mocker.patch('crhelper.cfn_handler')
-    lex = botocore.session.get_session().create_client('lex-models')
-
-    get_response = {
+@pytest.fixture()
+def get_bot_response():
+    """ Generates get bot response"""
+    return {
         "name": "test bot",
         "locale": "en-US",
         "abortStatement": {
@@ -81,17 +81,20 @@ def test_create(cfn_event, mocker):
         "lastUpdatedDate": 10012019
     }
 
-    put_response = {
+
+@pytest.fixture()
+def put_bot_response():
+    return {
         "name": "test bot",
         "locale": "en-US",
         "checksum": 'rnd value',
         "abortStatement": {
             "messages": [
-                {
-                    "content": "I'm sorry, but I am having trouble understanding. I'm going to pass you over to one of my team mates (they're human!). Please wait to be connected, they will have any information we have discussed.",
-                    "contentType": "PlainText"
-                    # "groupNumber": 1
-                }
+                  {
+                      "content": "I'm sorry, but I am having trouble understanding. I'm going to pass you over to one of my team mates (they're human!). Please wait to be connected, they will have any information we have discussed.",
+                      "contentType": "PlainText"
+                      # "groupNumber": 1
+                  }
             ]
         },
         "childDirected": True,
@@ -114,42 +117,47 @@ def test_create(cfn_event, mocker):
         "version": "$LATEST"
     }
 
+
+def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
+    lex = botocore.session.get_session().create_client('lex-models')
+    bot_name = 'pythontestLexBot'
+    bot_version = '$LATEST'
+
     expected_put_params = {'abortStatement': ANY,
-      'checksum': ANY,
-      'childDirected': False,
-      'clarificationPrompt': ANY,
-      'description': 'friendly AI chatbot overlord',
-      'idleSessionTTLInSeconds': ANY,
-      'name': 'pythontestLexBot',
-      'locale': ' en-US',
-      'processBehavior': 'BUILD'
-    }
+                           'checksum': ANY,
+                           'childDirected': False,
+                           'clarificationPrompt': ANY,
+                           'description': 'friendly AI chatbot overlord',
+                           'idleSessionTTLInSeconds': ANY,
+                           'name': bot_name,
+                           'locale': ' en-US',
+                           'processBehavior': 'BUILD'
+                           }
 
     expected_get_params = {
-        'name': 'pythontestLexBot', 'versionOrAlias': '$LATEST'}
+        'name': bot_name, 'versionOrAlias': bot_version}
 
     create_bot_version_response = {
-      'name': 'pythontestLexBot',
-      'version': '$LATEST'
+        'name': bot_name,
+        'version': bot_version
     }
 
     create_bot_version_params = {
-      'checksum': 'rnd value',
-      'name': 'pythontestLexBot'
+        'checksum': 'rnd value',
+        'name': bot_name
     }
 
     with Stubber(lex) as stubber:
-        stubber.add_response('get_bot', get_response, expected_get_params)
-        stubber.add_response('put_bot', put_response, expected_put_params)
-        stubber.add_response('create_bot_version', create_bot_version_response, create_bot_version_params)
-
-        # service_response = lex.put_bot(name='pythontestLexBot', locale='en-US', childDirected=True)
-        # service_response = lex.get_bot(name='pythontestLexBot', versionOrAlias='$LATEST')
+        stubber.add_response('get_bot', get_bot_response, expected_get_params)
+        stubber.add_response('put_bot', put_bot_response, expected_put_params)
+        stubber.add_response(
+            'create_bot_version', create_bot_version_response, create_bot_version_params)
 
         context = mocker.Mock()
         context.aws_request_id = 12345
         context.get_remaining_time_in_millis.return_value = 100000.0
 
-        app.create(cfn_event, context, lex_sdk=lex)
-
-    print("finish")
+        response = app.create(cfn_event, context, lex_sdk=lex)
+        assert response['BotName'] == bot_name
+        assert response['BotVersion'] == bot_version
+        stubber.assert_no_pending_responses()
