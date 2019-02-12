@@ -27,6 +27,14 @@ def cfn_event():
             "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
             "loglevel": "info",
             "description": "friendly AI chatbot overlord",
+            "locale": 'en-US',
+            'clarification': {
+                'message': 'clarification statement'
+            },
+            'abortStatement': {
+                'message': 'abort statement'
+            },
+
             "intents": ["test1", "test2"]
         },
         "ResourceType": "Custom::LexBot",
@@ -86,7 +94,7 @@ def get_bot_response():
 def put_bot_response():
     return {
         "name": "test bot",
-        "locale": "en-US",
+        "locale": 'en-US',
         "checksum": 'rnd value',
         "abortStatement": {
             "messages": [
@@ -122,15 +130,24 @@ def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
     lex = botocore.session.get_session().create_client('lex-models')
     bot_name = 'pythontestLexBot'
     bot_version = '$LATEST'
+    bot_props = cfn_event['ResourceProperties']
 
     expected_put_params = {'abortStatement': ANY,
                            'checksum': ANY,
                            'childDirected': False,
-                           'clarificationPrompt': ANY,
-                           'description': 'friendly AI chatbot overlord',
+                           'clarificationPrompt': {
+                                'maxAttempts': 1,
+                                'messages': [
+                                    {
+                                      'content': bot_props['clarification']['message'],
+                                      'contentType': 'PlainText'
+                                    }
+                                ]
+                            },
+                           'description': put_bot_response['description'],
                            'idleSessionTTLInSeconds': ANY,
                            'name': bot_name,
-                           'locale': ' en-US',
+                           'locale': put_bot_response['locale'],
                            'processBehavior': 'BUILD'
                            }
 
@@ -148,7 +165,7 @@ def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
     }
 
     with Stubber(lex) as stubber:
-        stubber.add_response('get_bot', get_bot_response, expected_get_params)
+        # stubber.add_response('get_bot', get_bot_response, expected_get_params)
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
         stubber.add_response(
             'create_bot_version', create_bot_version_response, create_bot_version_params)

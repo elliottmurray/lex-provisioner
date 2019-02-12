@@ -1,11 +1,25 @@
 {
-  "RequestType" : "Create",
-   "RequestId" : "12345",
-   "ResponseURL" : "http://pre-signed-url-for-create-response?",
-   "ResourceType" : "Custom::MyCustomResourceType",
-   "LogicalResourceId" : "name of resource in template",
-   "StackId" : "arn:aws:cloudformation:us-east-2:namespace:stack/stack-name/guid",
-   "ResourceProperties" : {
-      "definitions" : "example.yaml"
-   }
+  "RequestType": "Create",
+  "RequestId": "12345",
+  "ResponseURL": "http://pre-signed-url-for-create-response?",
+  "ResourceType": "Custom::MyCustomResourceType",
+  "LogicalResourceId": "name of resource in template",
+  "StackId": "arn:aws:cloudformation:us-east-2:namespace:stack/stack-name/guid",
+  "ResourceProperties": {
+    "NamePrefix": "pythontest",
+    "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
+    "loglevel": "info",
+    "description": "friendly AI chatbot overlord",
+    "locale": "en-US",
+    "clarification": {
+        "message": "clarification statement"
+    },
+    "abortStatement": {
+        "message": "abort statement"
+    },
+    "intents": [
+      "test1",
+      "test2"
+    ]
+  }
 }
