@@ -3,13 +3,14 @@
 defaultBucket='elliott-provisioner'
 
 STACK_NAME=$1
-BUCKET_NAME=${2:-defaultBucket}
+BUCKET_NAME=${2:-$defaultBucket}
 
 
 echo "Packaging..."
-sam package --output-template-file packaged.yaml --s3-bucket $BUCKET_NAME
+
+sam package --output-template-file packaged.yaml --s3-bucket $BUCKET_NAME > /dev/null 2>&1
 
 echo "Deploying..."
-sam deploy --template-file packaged.yaml --stack-name $STACK_NAME --capabilities CAPABILITY_IAM
+sam deploy --template-file packaged.yaml --stack-name $STACK_NAME --capabilities CAPABILITY_NAMED_IAM
 
 

@@ -1,13 +1,13 @@
 {
   "RequestType": "Create",
-  "RequestId": "12345",
+  "RequestId": "67eb0cbc-e751-4356-a86d-22bb54a63f5c",
   "ResponseURL": "http://pre-signed-url-for-create-response?",
-  "ResourceType": "Custom::MyCustomResourceType",
-  "LogicalResourceId": "name of resource in template",
+  "ResourceType": "Custom::LexBot",
+  "LogicalResourceId": "LexBot",
   "StackId": "arn:aws:cloudformation:us-east-2:namespace:stack/stack-name/guid",
   "ResourceProperties": {
     "NamePrefix": "pythontest",
-    "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
+    "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-EHOW8SMAB7FW",
     "loglevel": "info",
     "description": "friendly AI chatbot overlord",
     "locale": "en-US",

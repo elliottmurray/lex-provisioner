@@ -11,9 +11,57 @@ Globals:
         Timeout: 300
 
 Resources:
+    ManageLexRole:
+        Type: 'AWS::IAM::Role'
+        Properties:
+            RoleName: "managed-lex-role"
+            Path: '/'
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                - 'lambda.amazonaws.com'
+                        Action:
+                            - sts:AssumeRole
+            Policies:
+                -   PolicyName: "LambdaAddPermission"
+                    PolicyDocument:
+                        Version: 2012-10-17
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    - lambda:AddPermission
+                                Resource: '*'
+                -   PolicyName: "LexGet"
+                    PolicyDocument:
+                        Version: 2012-10-17
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    - lex:Get*
+                                Resource: '*'
+                -   PolicyName: "LexMutating"
+                    PolicyDocument:
+                        Version: 2012-10-17
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    - lex:PutBot*
+                                    - lex:Put*
+                                    - lex:Delete*
+                                    - lex:Create*
+                                Resource:
+                                    - !Sub "arn:aws:lex:${AWS::Region}:${AWS::AccountId}:bot:*:*"
+                                    - !Sub "arn:aws:lex:${AWS::Region}:${AWS::AccountId}:intent:*:*"
+                                    - !Sub "arn:aws:lex:${AWS::Region}:${AWS::AccountId}:slottype:*:*"
     LexProvisioner:
         Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        DependsOn:
+          - ManageLexRole
         Properties:
+            Role: !GetAtt ManageLexRole.Arn
             CodeUri: src/
             Handler: app.lambda_handler
             Runtime: python3.7
@@ -21,12 +69,11 @@ Resources:
                 Variables:
                     PARAM1: VALUE
 Outputs:
-    LexProvisioner:
+    LexProvisionerARN:
       Description: "Lambda Provisioner Function ARN"
       Value: !GetAtt LexProvisioner.Arn
       Export:
         Name: !Sub "${AWS::StackName}-LexProvisioner"
-    LexProvisionerIamRole:
-      Description: "Implicit IAM Role created for LexProvisioner function"
-      Value: !GetAtt LexProvisionerRole.Arn
-
+    ManageLexRole:
+      Description: "Implicit IAM Role created for ManageLexRole function"
+      Value: !GetAtt ManageLexRole.Arn

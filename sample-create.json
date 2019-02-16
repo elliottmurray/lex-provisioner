@@ -1,0 +1,30 @@
+{
+  "LogicalResourceId": "LexBot",
+  "LogicalResourceId": "LexBot",
+  "RequestId": "917afcc9-3430-44f5-aead-b7c483eb77ab",
+  "RequestType": "Create",
+  "ResourceProperties": {
+  "NamePrefix": "elliotttest",
+  "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-11UR1ZOI224RM",
+  "abortStatement": {
+  "message": "abort statement"
+  },
+  "clarification": {
+  "message": "clarification statement"
+  },
+  "description": "elliott test bot",
+  "dialogCodeHookUri": "greetingCodeHook",
+  "intents": [
+  "greeting"
+  ],
+  "locale": "en-US",
+  "loglevel": "info",
+  "test": {
+  "embed": "works"
+  }
+  },
+  "ResourceType": "Custom::LexBot",
+  "ResponseURL": "https://cloudformation-custom-resource-response-useast1.s3.amazonaws.com/arn%3Aaws%3Acloudformation%3Aus-east-1%3A773592622512%3Astack/elliott-test/edf00c30-31be-11e9-b55e-0e194fb09f5c%7CLexBot%7C917afcc9-3430-44f5-aead-b7c483eb77ab?AWSAccessKeyId=AKIAJRWMYHFMH4DNUF2Q&Expires=1550310399&Signature=ysJ0PzhcpaZntmTBV0RoJrnDjoU%3D",
+  "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-11UR1ZOI224RM",
+  "StackId": "arn:aws:cloudformation:us-east-1:773592622512:stack/elliott-test/edf00c30-31be-11e9-b55e-0e194fb09f5c"
+}
