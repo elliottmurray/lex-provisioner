@@ -68,6 +68,24 @@ Resources:
             Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
                 Variables:
                     PARAM1: VALUE
+    LogsForLambda:
+        Type: 'AWS::IAM::Policy'
+        Properties:
+            PolicyName: "LogsForLexLambda"
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                -
+                    Effect: Allow
+                    Action:
+                    - 'logs:CreateLogGroup'
+                    - 'logs:CreateLogStream'
+                    - 'logs:PutLogEvents'
+                    Resource:
+                    - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+                    - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*"
+            Roles:
+                - Ref: ManageLexRole
 Outputs:
     LexProvisionerARN:
       Description: "Lambda Provisioner Function ARN"
