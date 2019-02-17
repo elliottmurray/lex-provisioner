@@ -7,6 +7,7 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
+from intent_builder import IntentBuilder
 
 class LexBotBuilder:
     """Create/Update different elements that make up a Lex bot"""
@@ -90,51 +91,6 @@ class LexBotBuilder:
         return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
             + ':intent:' + intent_name + ':*'
 
-    def _create_intent(self, intent_definition):
-        """Create intent and configure any required lambda permissions
-
-        Currently only supports intents that use the same lambda for both
-        code hooks (i.e. 'dialogCodeHook' and 'fulfillmentActivity')
-        """
-        code_hook = None
-        if 'dialogCodeHook' in intent_definition:
-            code_hook = intent_definition['dialogCodeHook']
-
-        # TODO if the intent does not need to invoke a lambda, create it
-        if code_hook:
-            # If the intent needs to invoke a lambda function, we must give it permission to do so
-            # before creating the intent.
-            arn_tokens = code_hook['uri'].split(':')
-            aws_region = arn_tokens[3]
-            aws_account_id = arn_tokens[4]
-            lambda_sdk = self._get_lambda_sdk()
-            statement_id = 'lex-' + aws_region + \
-                '-' + intent_definition['name']
-            try:
-                add_permission_response = lambda_sdk.add_permission(
-                    FunctionName=code_hook['uri'],
-                    StatementId=statement_id,
-                    Action='lambda:InvokeFunction',
-                    Principal='lex.amazonaws.com',
-                    SourceArn=self._get_intent_arn(
-                        intent_definition['name'], aws_region, aws_account_id)
-                )
-                self._logger.info(
-                    'Response for adding intent permission to lambda: %s', add_permission_response
-                )
-            except ClientError as ex:
-                if ex.response['Error']['Code'] == 'ResourceConflictException':
-                    self._logger.info(
-                        'Failed to add permission to lambda, it already exists')
-                    self._logger.info(ex)
-                else:
-                    raise
-
-        new_intent = self._create_lex_resource(
-            self._lex_sdk.put_intent, 'put_intent', intent_definition
-        )
-        self._logger.info('Created new intent: %s', new_intent)
-        return new_intent
 
     def _replace_slot_type_version(self, intents_definition, slot_types):
         # todo construct custom slot types and versions for intents
@@ -145,43 +101,9 @@ class LexBotBuilder:
         return intents_definition
 
     def _put_intents(self, intents_definition):
-        """Create/Update intents and return the new version created for each
-
-        Arguments:
-        intents_definition -- array of intent objects containing all properties required by the aws-lex-sdk's put_intent function
-        slot_type_versions -- dict that maps slot_type name -> version
-        """
-        intent_versions = {}
-        for intent_name in intents_definition:
-            # name = intent['name']
-            lookup_version = '$LATEST'
-            try:
-                get_intent_response = self._lex_sdk.get_intent(
-                    name=intent_name, version=lookup_version)
-                checksum = get_intent_response['checksum']
-            except ClientError as ex:
-                http_status_code = None
-                if 'ResponseMetadata' in ex.response:
-                    response_metadata = ex.response['ResponseMetadata']
-                    if 'HTTPStatusCode' in response_metadata:
-                        http_status_code = response_metadata['HTTPStatusCode']
-                if http_status_code == 404:
-                    creation_response = self._create_intent(intent_name)
-                    version_response = self._lex_sdk.create_intent_version(
-                        name=intent_name, checksum=creation_response['checksum'])
-                    intent_versions[intent_name] = version_response['version']
-                    continue
-                else:
-                    self._logger.info('Lex get_slot_type call failed')
-                    self._logger.info(ex)
-                    raise
-
-            update_response = self._update_lex_resource(
-                self._lex_sdk.put_intent, 'put_intent', checksum, {'intentName': intent_name, "intentVersion": "$LATEST"})
-            version_response = self._lex_sdk.create_intent_version(
-                name=intent_name, checksum=update_response['checksum'])
-            intent_versions[intent_name] = version_response['version']
-        return intent_versions
+       intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
+       
+       return intent_builder.put_intent(intents_definition)
 
     def _put_slot_types(self, slot_type_definition):
         """Create/Update slot_types"""
@@ -225,6 +147,7 @@ class LexBotBuilder:
         intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
         intent_versions = self._put_intents(intents_definition)
 
+        checksum = ''
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
         bot_properties = {
             "name": bot_name,
@@ -235,6 +158,7 @@ class LexBotBuilder:
                   'intentVersion': '$LATEST'
               },
             ],
+            "checksum": checksum,
             "abortStatement": {
                 "messages": [
                     {

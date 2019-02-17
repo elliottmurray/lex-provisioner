@@ -9,6 +9,11 @@
 
 ## Setup process
 
+### Install tox
+```bash
+pip install tox
+```
+
 ### Testing locally
 Requires python 3.7.2 virtualenv. I use direnv and layouts to set this up.
 
