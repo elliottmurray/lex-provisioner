@@ -6,9 +6,9 @@
 import time
 import boto3
 from botocore.exceptions import ClientError
+from lex_helper import LexHelper
 
-
-class IntentBuilder:
+class IntentBuilder(LexHelper, object):
     def __init__(self, logger, lex_sdk=None):
         self._logger = logger
         if(lex_sdk == None):
@@ -19,7 +19,7 @@ class IntentBuilder:
     def _get_lex_sdk(self):
         return boto3.Session().client('lex-models')
 
-    def put_intent(self, intents_definition):
+    def put_intent(self, intent_definition):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both

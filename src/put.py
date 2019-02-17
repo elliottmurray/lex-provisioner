@@ -8,8 +8,9 @@ import boto3
 from botocore.exceptions import ClientError
 
 from intent_builder import IntentBuilder
+from lex_helper import LexHelper
 
-class LexBotBuilder:
+class LexBotBuilder(LexHelper, object):
     """Create/Update different elements that make up a Lex bot"""
 
     def __init__(self, logger, lex_sdk=None):
@@ -18,36 +19,6 @@ class LexBotBuilder:
             self._lex_sdk = self._get_lex_sdk()
         else:
             self._lex_sdk = lex_sdk
-
-    def _get_lex_sdk(self):
-        return boto3.Session().client('lex-models')
-
-    def _get_lambda_sdk(self):
-        return boto3.Session().client('lambda')
-
-    def _create_lex_resource(self, func, func_name, properties):
-        try:
-            response = func(**properties)
-            self._logger.info(
-                'Created lex resource using %s, response: %s', func_name, response)
-            return response
-        except Exception as ex:
-            self._logger.error(
-                'Failed to create lex resource using %s', func_name)
-            self._logger.error(ex)
-            raise
-
-    def _update_lex_resource(self, func, func_name, checksum, properties):
-        try:
-            response = func(checksum=checksum, **properties)
-            self._logger.info(
-                'Created lex resource using %s, response: %s', func_name, response)
-            return response
-        except Exception as ex:
-            self._logger.error(
-                'Failed to update lex resource using %s', func_name)
-            self._logger.error(ex)
-            raise
 
     def _replace_intent_version(self, bot_definition, intents):
         for intent in bot_definition['intents']:
