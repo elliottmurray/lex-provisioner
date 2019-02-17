@@ -152,12 +152,12 @@ class LexBotBuilder:
         slot_type_versions -- dict that maps slot_type name -> version
         """
         intent_versions = {}
-        for intent in intents_definition:
-            name = intent['name']
+        for intent_name in intents_definition:
+            # name = intent['name']
             lookup_version = '$LATEST'
             try:
                 get_intent_response = self._lex_sdk.get_intent(
-                    name=name, version=lookup_version)
+                    name=intent_name, version=lookup_version)
                 checksum = get_intent_response['checksum']
             except ClientError as ex:
                 http_status_code = None
@@ -166,10 +166,10 @@ class LexBotBuilder:
                     if 'HTTPStatusCode' in response_metadata:
                         http_status_code = response_metadata['HTTPStatusCode']
                 if http_status_code == 404:
-                    creation_response = self._create_intent(intent)
+                    creation_response = self._create_intent(intent_name)
                     version_response = self._lex_sdk.create_intent_version(
-                        name=name, checksum=creation_response['checksum'])
-                    intent_versions[name] = version_response['version']
+                        name=intent_name, checksum=creation_response['checksum'])
+                    intent_versions[intent_name] = version_response['version']
                     continue
                 else:
                     self._logger.info('Lex get_slot_type call failed')
@@ -177,10 +177,10 @@ class LexBotBuilder:
                     raise
 
             update_response = self._update_lex_resource(
-                self._lex_sdk.put_intent, 'put_intent', checksum, intent)
+                self._lex_sdk.put_intent, 'put_intent', checksum, {'intentName': intent_name, "intentVersion": "$LATEST"})
             version_response = self._lex_sdk.create_intent_version(
-                name=name, checksum=update_response['checksum'])
-            intent_versions[name] = version_response['version']
+                name=intent_name, checksum=update_response['checksum'])
+            intent_versions[intent_name] = version_response['version']
         return intent_versions
 
     def _put_slot_types(self, slot_type_definition):
@@ -223,12 +223,18 @@ class LexBotBuilder:
         # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
 
         intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
-        # intent_versions = self._put_intents(intents_definition)
+        intent_versions = self._put_intents(intents_definition)
 
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
         bot_properties = {
             "name": bot_name,
             "locale": resource_properties['locale'],
+            "intents": [
+              {
+                  'intentName': 'someName',
+                  'intentVersion': '$LATEST'
+              },
+            ],
             "abortStatement": {
                 "messages": [
                     {

@@ -132,24 +132,26 @@ def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
     bot_version = '$LATEST'
     bot_props = cfn_event['ResourceProperties']
 
-    expected_put_params = {'abortStatement': ANY,
-                           'checksum': ANY,
-                           'childDirected': False,
-                           'clarificationPrompt': {
-                                'maxAttempts': 1,
-                                'messages': [
-                                    {
-                                      'content': bot_props['clarification']['message'],
-                                      'contentType': 'PlainText'
-                                    }
-                                ]
+    expected_put_params = {
+                            'abortStatement': ANY,
+                            'checksum': ANY,
+                            'childDirected': False,
+                            'clarificationPrompt': {
+                              'maxAttempts': 1,
+                              'messages': [
+                                {
+                                  'content': bot_props['clarification']['message'],
+                                  'contentType': 'PlainText'
+                                }
+                              ]
                             },
-                           'description': put_bot_response['description'],
-                           'idleSessionTTLInSeconds': ANY,
-                           'name': bot_name,
-                           'locale': put_bot_response['locale'],
-                           'processBehavior': 'BUILD'
-                           }
+                            'description': put_bot_response['description'],
+                            'idleSessionTTLInSeconds': ANY,
+                            'name': bot_name,
+                            'intents': ['test1', 'test2'],
+                            'locale': put_bot_response['locale'],
+                            'processBehavior': 'BUILD'
+                          }
 
     expected_get_params = {
         'name': bot_name, 'versionOrAlias': bot_version}
@@ -166,9 +168,13 @@ def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
 
     with Stubber(lex) as stubber:
         # stubber.add_response('get_bot', get_bot_response, expected_get_params)
+        stubber.add_response('get_intent', {'checksum': '1234'})
+        stubber.add_response('put_intent', {})
+
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
-        stubber.add_response(
-            'create_bot_version', create_bot_version_response, create_bot_version_params)
+
+        stubber.add_response('create_bot_version',
+            create_bot_version_response, create_bot_version_params)
 
         context = mocker.Mock()
         context.aws_request_id = 12345

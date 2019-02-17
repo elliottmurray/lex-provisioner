@@ -4,8 +4,6 @@ Description: >
     Chatbot provisioner
 
     Lex Provisioner SAM Template
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
     Function:
         Timeout: 300
@@ -48,7 +46,6 @@ Resources:
                         Statement:
                             -   Effect: Allow
                                 Action:
-                                    - lex:PutBot*
                                     - lex:Put*
                                     - lex:Delete*
                                     - lex:Create*
@@ -57,7 +54,7 @@ Resources:
                                     - !Sub "arn:aws:lex:${AWS::Region}:${AWS::AccountId}:intent:*:*"
                                     - !Sub "arn:aws:lex:${AWS::Region}:${AWS::AccountId}:slottype:*:*"
     LexProvisioner:
-        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Type: AWS::Serverless::Function
         DependsOn:
           - ManageLexRole
         Properties:
@@ -65,7 +62,7 @@ Resources:
             CodeUri: src/
             Handler: app.lambda_handler
             Runtime: python3.7
-            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+            Environment:
                 Variables:
                     PARAM1: VALUE
     LogsForLambda:
