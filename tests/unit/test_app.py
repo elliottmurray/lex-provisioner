@@ -1,13 +1,9 @@
-from collections import namedtuple
-import json
 import requests
 import crhelper
-import intent_builder
 
 import mock
 import pytest
 from pytest_mock import mocker
-from unittest.mock import MagicMock
 import botocore.session
 from botocore.stub import Stubber, ANY
 import datetime
