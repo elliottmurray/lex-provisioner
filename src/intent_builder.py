@@ -19,13 +19,14 @@ class IntentBuilder(LexHelper, object):
     def _get_lex_sdk(self):
         return boto3.Session().client('lex-models')
 
-    def put_intent(self, intent_definition):
+    # def put_intent(self, intent_definition):
+    def put_intent(self):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both
         code hooks (i.e. 'dialogCodeHook' and 'fulfillmentActivity')
         """
-        self._logger.info('put intent')        
+        self._logger.info('put intent')
 
         code_hook = None
         if 'dialogCodeHook' in intent_definition:

@@ -2,6 +2,7 @@ from collections import namedtuple
 import json
 import requests
 import crhelper
+import intent_builder
 
 import mock
 import pytest
@@ -126,7 +127,8 @@ def put_bot_response():
     }
 
 
-def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
+@mock.patch('put.IntentBuilder')
+def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response, mocker):
     lex = botocore.session.get_session().create_client('lex-models')
     bot_name = 'pythontestLexBot'
     bot_version = '$LATEST'
@@ -148,8 +150,8 @@ def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
                             'description': put_bot_response['description'],
                             'idleSessionTTLInSeconds': ANY,
                             'name': bot_name,
-                            'intents': ['test1', 'test2'],
-                            'locale': put_bot_response['locale'],
+                            'intents': [{'intentName': 'someName', 'intentVersion': '$LATEST'}],
+                             'locale': put_bot_response['locale'],
                             'processBehavior': 'BUILD'
                           }
 
@@ -168,8 +170,11 @@ def test_create(cfn_event, get_bot_response, put_bot_response, mocker):
 
     with Stubber(lex) as stubber:
         # stubber.add_response('get_bot', get_bot_response, expected_get_params)
-        stubber.add_response('get_intent', {'checksum': '1234'})
-        stubber.add_response('put_intent', {})
+        intent_builder_instance = intent_builder.return_value
+        intent_builder_instance.put_intent.return_value = True
+
+        # stubber.add_response('get_intent', {'checksum': '1234'})
+        # stubber.add_response('put_intent', {})
 
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
 

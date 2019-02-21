@@ -73,8 +73,9 @@ class LexBotBuilder(LexHelper, object):
 
     def _put_intents(self, intents_definition):
        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
-       
-       return intent_builder.put_intent(intents_definition)
+       return intent_builder.put_intent()
+
+      #  return intent_builder.put_intent(intents_definition)
 
     def _put_slot_types(self, slot_type_definition):
         """Create/Update slot_types"""
