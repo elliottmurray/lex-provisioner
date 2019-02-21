@@ -188,4 +188,6 @@ def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response, m
         response = app.create(cfn_event, context, lex_sdk=lex)
         assert response['BotName'] == bot_name
         assert response['BotVersion'] == bot_version
+        assert intent_builder_instance.put_intent.call_count == 1
+
         stubber.assert_no_pending_responses()

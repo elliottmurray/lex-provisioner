@@ -73,7 +73,7 @@ class LexBotBuilder(LexHelper, object):
 
     def _put_intents(self, intents_definition):
        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
-       return intent_builder.put_intent()
+       return intent_builder.put_intent(intents_definition)
 
       #  return intent_builder.put_intent(intents_definition)
 
@@ -112,16 +112,8 @@ class LexBotBuilder(LexHelper, object):
             slot_type_versions[name] = version_response['version']
         return slot_type_versions
 
-    def put(self, bot_name, resource_properties):
-        """Create/Update lex-bot resources; bot, intents, slot_types"""
-        # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
-
-        intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
-        intent_versions = self._put_intents(intents_definition)
-
-        checksum = ''
-        # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
-        bot_properties = {
+    def _bot_put_properties(self, bot_name, checksum, resource_properties):
+        return {
             "name": bot_name,
             "locale": resource_properties['locale'],
             "intents": [
@@ -153,6 +145,18 @@ class LexBotBuilder(LexHelper, object):
             "description": resource_properties['description'],
             "idleSessionTTLInSeconds": 3000
         }
+
+
+    def put(self, bot_name, resource_properties):
+        """Create/Update lex-bot resources; bot, intents, slot_types"""
+        # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
+
+        intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
+        intent_versions = self._put_intents(intents_definition)
+
+        checksum = ''
+        # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
+        bot_properties = self._bot_put_properties(bot_name, checksum, resource_properties)
 
         bot_response = self._put_bot(bot_name, bot_properties)
         return bot_response

@@ -20,7 +20,7 @@ class IntentBuilder(LexHelper, object):
         return boto3.Session().client('lex-models')
 
     # def put_intent(self, intent_definition):
-    def put_intent(self):
+    def put_intent(self, intent_definition):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both
