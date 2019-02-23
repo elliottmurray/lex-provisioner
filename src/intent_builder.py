@@ -9,15 +9,18 @@ from botocore.exceptions import ClientError
 from lex_helper import LexHelper
 
 class IntentBuilder(LexHelper, object):
-    def __init__(self, logger, lex_sdk=None):
+    def __init__(self, logger, lex_sdk=None, lambda_sdk=None):
         self._logger = logger
         if(lex_sdk == None):
             self._lex_sdk = self._get_lex_sdk()
         else:
             self._lex_sdk = lex_sdk
 
-    def _get_lex_sdk(self):
-        return boto3.Session().client('lex-models')
+        if(lambda_sdk == None):
+            self._lambda_sdk = self._get_lambda_sdk()
+        else:
+            self._lambda_sdk = lambda_sdk
+
 
     # def put_intent(self, intent_definition):
     def put_intent(self, intent_definition):
@@ -39,11 +42,10 @@ class IntentBuilder(LexHelper, object):
             arn_tokens = code_hook['uri'].split(':')
             aws_region = arn_tokens[3]
             aws_account_id = arn_tokens[4]
-            lambda_sdk = self._get_lambda_sdk()
             statement_id = 'lex-' + aws_region + \
                 '-' + intent_definition['name']
             try:
-                add_permission_response = lambda_sdk.add_permission(
+                add_permission_response = self._lambda_sdk.add_permission(
                     FunctionName=code_hook['uri'],
                     StatementId=statement_id,
                     Action='lambda:InvokeFunction',

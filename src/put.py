@@ -58,10 +58,6 @@ class LexBotBuilder(LexHelper, object):
         print(version_response)
         return version_response
 
-    def _get_intent_arn(self, intent_name, aws_region, aws_account_id):
-        return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
-            + ':intent:' + intent_name + ':*'
-
 
     def _replace_slot_type_version(self, intents_definition, slot_types):
         # todo construct custom slot types and versions for intents

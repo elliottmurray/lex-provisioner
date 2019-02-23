@@ -8,11 +8,181 @@ import datetime
 
 from intent_builder import IntentBuilder
 
-# @mock.patch('put.IntentBuilder')
-def test_create_intent(mocker):
-    lex = botocore.session.get_session().create_client('lex-models')
-    with Stubber(lex) as stubber:
-        assert True == True
-        intent_builder = IntentBuilder(Mock(), lex_sdk=lex)
-        intent_builder.put_intent({})
+aws_region = 'us-east-1'
+aws_account_id = '1234567789'
 
+@pytest.fixture()
+def put_intent_request():
+
+    return {
+        'name': "test bot",
+        'description': 'a description',
+        'slots': [],
+
+        'sampleUtterances': [
+            'some utterance',
+        ],
+        'confirmationPrompt': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': 'are you sure?'
+                },
+            ],
+            'maxAttempts': 123,
+            'responseCard': 'string'
+        },
+        'rejectionStatement': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': 'Cannot do this now'
+                },
+            ],
+            'responseCard': 'string'
+        },
+        'followUpPrompt': {
+            'prompt': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': 'Anything else you want to do'
+                    },
+                ],
+                'maxAttempts': 123,
+                'responseCard': 'string'
+            },
+            'rejectionStatement': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': 'string'
+                    },
+                ],
+                'responseCard': 'string'
+            }
+        },
+        'conclusionStatement': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': 'string'
+                },
+            ],
+            'responseCard': 'string'
+        },
+        'dialogCodeHook': {
+            'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+            'messageVersion': '1.0'
+        },
+        'fulfillmentActivity': {
+            'type': 'ReturnIntent',
+            'codeHook': {
+                'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+                'messageVersion': 'string'
+            }
+        },
+        'parentIntentSignature': 'string',
+        'checksum': 'string'
+    }
+
+@pytest.fixture()
+def put_intent_response():
+
+    return {
+        'name': "test bot",
+        'description': 'a description',
+        'slots': [],
+
+        'sampleUtterances': [
+            'some utterance',
+        ],
+        'confirmationPrompt': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': 'are you sure?'
+                },
+            ],
+            'maxAttempts': 123,
+            'responseCard': 'string'
+        },
+        'rejectionStatement': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': 'Cannot do this now'
+                },
+            ],
+            'responseCard': 'string'
+        },
+        'followUpPrompt': {
+            'prompt': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': 'Anything else you want to do'
+                    },
+                ],
+                'maxAttempts': 123,
+                'responseCard': 'string'
+            },
+            'rejectionStatement': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': 'string'
+                    },
+                ],
+                'responseCard': 'string'
+            }
+        },
+        'conclusionStatement': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': 'string'
+                },
+            ],
+            'responseCard': 'string'
+        },
+        'dialogCodeHook': {
+            'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+            'messageVersion': '1.0'
+        },
+        'fulfillmentActivity': {
+            'type': 'ReturnIntent',
+            'codeHook': {
+                'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+                'messageVersion': 'string'
+            }
+        },
+        'parentIntentSignature': 'string',
+        'checksum': 'string'
+    }
+
+
+# @mock.patch('put.IntentBuilder')
+def test_create_intent(put_intent_request, put_intent_response, mocker):
+    lex = botocore.session.get_session().create_client('lex-models')
+    aws_lambda = botocore.session.get_session().create_client('lambda')
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        lambda_request = {
+          'FunctionName': ANY,
+          'StatementId': ANY,
+          'Action': ANY,
+          'Principal': ANY,
+          'SourceArn': ANY
+        }
+        stubber.add_response(
+            'put_intent', put_intent_response, put_intent_request)
+        lambda_stubber.add_response('add_permission', {}, lambda_request)
+
+
+        intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
+
+        intent_builder.put_intent(put_intent_request)
+
+        stubber.assert_no_pending_responses()
+        lambda_stubber.assert_no_pending_responses()

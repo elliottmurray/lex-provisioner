@@ -1,3 +1,5 @@
+import boto3
+
 class LexHelper(object):
 
     def _get_lex_sdk(self):
@@ -17,7 +19,7 @@ class LexHelper(object):
                 'Failed to create lex resource using %s', func_name)
             self._logger.error(ex)
             raise
-    
+
     def _update_lex_resource(self, func, func_name, checksum, properties):
         try:
             response = func(checksum=checksum, **properties)
@@ -29,3 +31,7 @@ class LexHelper(object):
                 'Failed to update lex resource using %s', func_name)
             self._logger.error(ex)
             raise
+
+    def _get_intent_arn(self, intent_name, aws_region, aws_account_id):
+        return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
+            + ':intent:' + intent_name + ':*'
