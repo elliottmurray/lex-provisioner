@@ -221,6 +221,6 @@ def test_create_put_intent_called(intent_builder, cfn_event, get_bot_response, p
         context = mocker.Mock()
         response = app.create(cfn_event, context, lex_sdk=lex)
         assert intent_builder_instance.put_intent.call_count == 1
-        intent_builder_instance.put_intent.assert_called_with(1)
+        intent_builder_instance.put_intent.assert_called_with(['test1', 'test2'])
 
 
