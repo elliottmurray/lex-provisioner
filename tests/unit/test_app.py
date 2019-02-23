@@ -144,23 +144,11 @@ def put_bot_request(bot_name, bot_props, put_bot_response):
                             'processBehavior': 'BUILD'
                           }
 
-def setUp():
-    lex = botocore.session.get_session().create_client('lex-models')
-    bot_name = 'pythontestLexBot'
-    bot_version = '$LATEST'
-    return lex, bot_name, bot_version
-
-@mock.patch('put.IntentBuilder')
-def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response,
-        mocker):
-    lex, bot_name, bot_version = setUp()
-    bot_props = cfn_event['ResourceProperties']
-
-    expected_put_params = put_bot_request(bot_name, bot_props, put_bot_response)
-
+def get_bot_request(bot_name, bot_version):
     expected_get_params = {
         'name': bot_name, 'versionOrAlias': bot_version}
 
+def get_put_bot_version_interaction(bot_name, bot_version):
     create_bot_version_response = {
         'name': bot_name,
         'version': bot_version
@@ -170,9 +158,25 @@ def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response,
         'checksum': 'rnd value',
         'name': bot_name
     }
+    return create_bot_version_response, create_bot_version_params
+
+def setUp():
+    lex = botocore.session.get_session().create_client('lex-models')
+    bot_name = 'pythontestLexBot'
+    bot_version = '$LATEST'
+    return lex, bot_name, bot_version
+
+@mock.patch('put.IntentBuilder')
+def test_create_puts_bot(intent_builder, cfn_event, get_bot_response, put_bot_response,
+        mocker):
+    lex, bot_name, bot_version = setUp()
+    bot_props = cfn_event['ResourceProperties']
+
+    expected_put_params = put_bot_request(bot_name, bot_props, put_bot_response)
+
+    create_bot_version_response, create_bot_version_params = get_put_bot_version_interaction(bot_name, bot_version)
 
     with Stubber(lex) as stubber:
-        # stubber.add_response('get_bot', get_bot_response, expected_get_params)
         intent_builder_instance = intent_builder.return_value
         intent_builder_instance.put_intent.return_value = True
 
@@ -191,13 +195,34 @@ def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response,
         response = app.create(cfn_event, context, lex_sdk=lex)
         assert response['BotName'] == bot_name
         assert response['BotVersion'] == bot_version
-        assert intent_builder_instance.put_intent.call_count == 1
 
         stubber.assert_no_pending_responses()
 
 
 @mock.patch('put.IntentBuilder')
-def test_put_intent_called(intent_builder, cfn_event, get_bot_response, put_bot_response, mocker):
+def test_create_put_intent_called(intent_builder, cfn_event, get_bot_response, put_bot_response, mocker):
 
     lex, bot_name, bot_version = setUp()
-    print('test')
+
+    bot_props = cfn_event['ResourceProperties']
+
+    create_bot_version_response, create_bot_version_params = get_put_bot_version_interaction(bot_name, bot_version)
+    expected_put_params = put_bot_request(bot_name, bot_props, put_bot_response)
+
+    with Stubber(lex) as stubber:
+        intent_builder_instance = intent_builder.return_value
+        intent_builder_instance.put_intent.return_value = True
+
+        # stubber.add_response('get_intent', {'checksum': '1234'})
+        # stubber.add_response('put_intent', {})
+
+        stubber.add_response('put_bot', put_bot_response, expected_put_params)
+
+        stubber.add_response('create_bot_version',
+            create_bot_version_response, create_bot_version_params)
+
+        context = mocker.Mock()
+        response = app.create(cfn_event, context, lex_sdk=lex)
+        assert intent_builder_instance.put_intent.call_count == 1
+
+
