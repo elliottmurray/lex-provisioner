@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """ Provision AWS Lex resources using python SDK
 """
 

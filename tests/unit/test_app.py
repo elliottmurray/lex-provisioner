@@ -122,15 +122,8 @@ def put_bot_response():
         "version": "$LATEST"
     }
 
-
-@mock.patch('put.IntentBuilder')
-def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response, mocker):
-    lex = botocore.session.get_session().create_client('lex-models')
-    bot_name = 'pythontestLexBot'
-    bot_version = '$LATEST'
-    bot_props = cfn_event['ResourceProperties']
-
-    expected_put_params = {
+def put_bot_request(bot_name, bot_props, put_bot_response):
+    return {
                             'abortStatement': ANY,
                             'checksum': ANY,
                             'childDirected': False,
@@ -150,6 +143,20 @@ def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response, m
                              'locale': put_bot_response['locale'],
                             'processBehavior': 'BUILD'
                           }
+
+def setUp():
+    lex = botocore.session.get_session().create_client('lex-models')
+    bot_name = 'pythontestLexBot'
+    bot_version = '$LATEST'
+    return lex, bot_name, bot_version
+
+@mock.patch('put.IntentBuilder')
+def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response,
+        mocker):
+    lex, bot_name, bot_version = setUp()
+    bot_props = cfn_event['ResourceProperties']
+
+    expected_put_params = put_bot_request(bot_name, bot_props, put_bot_response)
 
     expected_get_params = {
         'name': bot_name, 'versionOrAlias': bot_version}
@@ -187,3 +194,10 @@ def test_create(intent_builder, cfn_event, get_bot_response, put_bot_response, m
         assert intent_builder_instance.put_intent.call_count == 1
 
         stubber.assert_no_pending_responses()
+
+
+@mock.patch('put.IntentBuilder')
+def test_put_intent_called(intent_builder, cfn_event, get_bot_response, put_bot_response, mocker):
+
+    lex, bot_name, bot_version = setUp()
+    print('test')

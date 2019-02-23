@@ -10,6 +10,7 @@ from intent_builder import IntentBuilder
 
 aws_region = 'us-east-1'
 aws_account_id = '1234567789'
+codehookName = 'greetingCodehook'
 
 @pytest.fixture()
 def put_intent_request():
@@ -147,7 +148,8 @@ def put_intent_response():
             'responseCard': 'string'
         },
         'dialogCodeHook': {
-            'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+            'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id +
+            ':function:' + codehookName,
             'messageVersion': '1.0'
         },
         'fulfillmentActivity': {
@@ -169,20 +171,19 @@ def test_create_intent(put_intent_request, put_intent_response, mocker):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         lambda_request = {
-          'FunctionName': ANY,
+          'FunctionName': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
           'StatementId': ANY,
-          'Action': ANY,
-          'Principal': ANY,
+          'Action': 'lambda:InvokeFunction',
+          'Principal': 'lex.amazonaws.com',
           'SourceArn': ANY
         }
         stubber.add_response(
             'put_intent', put_intent_response, put_intent_request)
         lambda_stubber.add_response('add_permission', {}, lambda_request)
 
-
         intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
-
         intent_builder.put_intent(put_intent_request)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
+
