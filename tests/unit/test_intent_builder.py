@@ -12,22 +12,20 @@ aws_region = 'us-east-1'
 aws_account_id = '1234567789'
 codehookName = 'greetingCodehook'
 
-@pytest.fixture()
-def put_intent_request():
+def put_intent_request(bot_name, intent_name, plaintext=None):
 
     return {
-        'name': "test bot",
-        'description': 'a description',
+        'name': bot_name,
+        'description': "Intent {0} for {1}".format(intent_name, bot_name),
         'slots': [],
 
         'sampleUtterances': [
-            'some utterance',
         ],
         'confirmationPrompt': {
             'messages': [
                 {
                     'contentType': 'PlainText',
-                    'content': 'are you sure?'
+                    'content': plaintext['confirmation']
                 },
             ],
             'maxAttempts': 123,
@@ -37,7 +35,7 @@ def put_intent_request():
             'messages': [
                 {
                     'contentType': 'PlainText',
-                    'content': 'Cannot do this now'
+                    'content': plaintext['rejection']
                 },
             ],
             'responseCard': 'string'
@@ -47,7 +45,7 @@ def put_intent_request():
                 'messages': [
                     {
                         'contentType': 'PlainText',
-                        'content': 'Anything else you want to do'
+                        'content': plaintext['followUpPrompt']
                     },
                 ],
                 'maxAttempts': 123,
@@ -57,7 +55,7 @@ def put_intent_request():
                 'messages': [
                     {
                         'contentType': 'PlainText',
-                        'content': 'string'
+                        'content': plaintext['followUpRejection']
                     },
                 ],
                 'responseCard': 'string'
@@ -67,19 +65,21 @@ def put_intent_request():
             'messages': [
                 {
                     'contentType': 'PlainText',
-                    'content': 'string'
+                    'content': plaintext['conclusion']
                 },
             ],
             'responseCard': 'string'
         },
         'dialogCodeHook': {
-            'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+                'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(aws_region,
+                    aws_account_id, intent_name),
             'messageVersion': '1.0'
         },
         'fulfillmentActivity': {
             'type': 'ReturnIntent',
             'codeHook': {
-                'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+                'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(aws_region,
+                    aws_account_id, intent_name),
                 'messageVersion': 'string'
             }
         },
@@ -165,24 +165,36 @@ def put_intent_response():
 
 
 # @mock.patch('put.IntentBuilder')
-def test_create_intent(put_intent_request, put_intent_response, mocker):
+def test_create_intent_plaintext( put_intent_response, mocker):
     lex = botocore.session.get_session().create_client('lex-models')
     aws_lambda = botocore.session.get_session().create_client('lambda')
+    bot_name = 'test bot'
+    intent_name = 'greeting'
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, intent_name)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         lambda_request = {
-          'FunctionName': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
-          'StatementId': ANY,
-          'Action': 'lambda:InvokeFunction',
-          'Principal': 'lex.amazonaws.com',
-          'SourceArn': ANY
+                'FunctionName': codehook_uri,
+                'StatementId': 'lex-{0}-{1}'.format(aws_region, intent_name),
+                'Action': 'lambda:InvokeFunction',
+                'Principal': 'lex.amazonaws.com',
+                'SourceArn': ANY
         }
-        stubber.add_response(
-            'put_intent', put_intent_response, put_intent_request)
         lambda_stubber.add_response('add_permission', {}, lambda_request)
 
         intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
-        intent_builder.put_intent(put_intent_request)
+        plaintext = {
+                "confirmation": 'some confirmation message',
+                'rejection': 'rejection message',
+                'followUpPrompt':'follow on',
+                'followUpRejection':'failed follow on',
+                'conclusion': 'concluded'
+                }
+        put_intent_request(bot_name, intent_name, plaintext)
+        stubber.add_response(
+            'put_intent', put_intent_response, put_intent_request)
+
+        intent_builder.put_intent(bot_name, intent_name, codehook_uri, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()

@@ -21,7 +21,7 @@ class IntentBuilder(LexHelper, object):
 
 
     # def put_intent(self, intent_definition):
-    def put_intent(self, intent_definition):
+    def put_intent(self, bot_name, intent_name, codehook_uri, plaintext=None):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both
@@ -29,27 +29,107 @@ class IntentBuilder(LexHelper, object):
         """
         self._logger.info('put intent')
 
-        code_hook = None
-        if 'dialogCodeHook' in intent_definition:
-            code_hook = intent_definition['dialogCodeHook']
+        self._add_permission_to_lex_to_codehook(codehook_uri, intent_name)
 
         # TODO if the intent does not need to invoke a lambda, create it
-        if code_hook:
+        new_intent = self._create_lex_resource(
+            self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
+                intent_name, codehook_uri, plaintext=plaintext)
+        )
+        self._logger.info('Created new intent: %s', new_intent)
+        return new_intent
+
+    def put_intent_request(self, bot_name, intent_name, codehook_uri, plaintext=None):
+
+        return {
+            'name': bot_name,
+            'description': "Intent {0} for {1}".format(intent_name, bot_name),
+            'slots': [],
+
+            'sampleUtterances': [
+            ],
+            'confirmationPrompt': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': plaintext['confirmation']
+                    },
+                ],
+                'maxAttempts': 123,
+                'responseCard': 'string'
+            },
+            'rejectionStatement': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': plaintext['rejection']
+                    },
+                ],
+                'responseCard': 'string'
+            },
+            'followUpPrompt': {
+                'prompt': {
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': plaintext['followUpPrompt']
+                        },
+                    ],
+                    'maxAttempts': 123,
+                    'responseCard': 'string'
+                },
+                'rejectionStatement': {
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': plaintext['followUpRejection']
+                        },
+                    ],
+                    'responseCard': 'string'
+                }
+            },
+            'conclusionStatement': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': plaintext['conclusion']
+                    },
+                ],
+                'responseCard': 'string'
+            },
+            'dialogCodeHook': {
+                'uri': codehook_uri,
+                'messageVersion': '1.0'
+            },
+            'fulfillmentActivity': {
+                'type': 'ReturnIntent',
+                'codeHook': {
+                    'uri': codehook_uri,
+                    'messageVersion': 'string'
+                }
+            },
+            'parentIntentSignature': 'string',
+            'checksum': 'string'
+        }
+
+
+    def _add_permission_to_lex_to_codehook(self, codehook_uri, intent_name):
+        if codehook_uri:
             # If the intent needs to invoke a lambda function, we must give it permission to do so
             # before creating the intent.
-            arn_tokens = code_hook['uri'].split(':')
+            arn_tokens = codehook_uri.split(':')
             aws_region = arn_tokens[3]
             aws_account_id = arn_tokens[4]
             statement_id = 'lex-' + aws_region + \
-                '-' + intent_definition['name']
+                '-' + intent_name
             try:
                 add_permission_response = self._lambda_sdk.add_permission(
-                    FunctionName=code_hook['uri'],
+                    FunctionName=codehook_uri,
                     StatementId=statement_id,
                     Action='lambda:InvokeFunction',
                     Principal='lex.amazonaws.com',
                     SourceArn=self._get_intent_arn(
-                        intent_definition['name'], aws_region, aws_account_id)
+                        intent_name, aws_region, aws_account_id)
                 )
                 self._logger.info(
                     'Response for adding intent permission to lambda: %s', add_permission_response
@@ -62,8 +142,4 @@ class IntentBuilder(LexHelper, object):
                 else:
                     raise
 
-        new_intent = self._create_lex_resource(
-            self._lex_sdk.put_intent, 'put_intent', intent_definition
-        )
-        self._logger.info('Created new intent: %s', new_intent)
-        return new_intent
+
