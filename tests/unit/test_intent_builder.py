@@ -13,7 +13,7 @@ aws_account_id = '1234567789'
 codehookName = 'greetingCodehook'
 
 def put_intent_request(bot_name, intent_name, plaintext=None):
-
+    print(plaintext)
     return {
         'name': bot_name,
         'description': "Intent {0} for {1}".format(intent_name, bot_name),
@@ -165,7 +165,7 @@ def put_intent_response():
 
 
 # @mock.patch('put.IntentBuilder')
-def test_create_intent_plaintext( put_intent_response, mocker):
+def test_create_intent_plaintext(put_intent_response, mocker):
     lex = botocore.session.get_session().create_client('lex-models')
     aws_lambda = botocore.session.get_session().create_client('lambda')
     bot_name = 'test bot'
@@ -190,9 +190,11 @@ def test_create_intent_plaintext( put_intent_response, mocker):
                 'followUpRejection':'failed follow on',
                 'conclusion': 'concluded'
                 }
-        put_intent_request(bot_name, intent_name, plaintext)
+
+
+        put_request = put_intent_request(bot_name, intent_name, plaintext)
         stubber.add_response(
-            'put_intent', put_intent_response, put_intent_request)
+            'put_intent', put_intent_response, put_request)
 
         intent_builder.put_intent(bot_name, intent_name, codehook_uri, plaintext=plaintext)
 

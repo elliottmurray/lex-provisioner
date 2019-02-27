@@ -30,7 +30,6 @@ class IntentBuilder(LexHelper, object):
         self._logger.info('put intent')
 
         self._add_permission_to_lex_to_codehook(codehook_uri, intent_name)
-
         # TODO if the intent does not need to invoke a lambda, create it
         new_intent = self._create_lex_resource(
             self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,

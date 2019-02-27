@@ -31,9 +31,16 @@ def cfn_event():
             'abortStatement': {
                 'message': 'abort statement'
             },
-
-            "intents": ["test1", "test2"]
-        },
+            "intents":[
+                {
+                  "Name": 'greeting',
+                  "Codehook": "arn:aws:xxx",
+                  "Plaintext": {
+                      "confirmation": 'a confirmation'
+                  }
+                }
+            ],
+            },
         "ResourceType": "Custom::LexBot",
         "ResponseURL": "https://cloudformation-custom-resource-response-useast1.s3.amazonaws.com/arn%3Aaws%3Acloudformation%3Aus-east-1%3A773592622512%3Astack/elliott-test/db2706d0-2683-11e9-a40a-0a515b01a4a4%7CLexBot%7C23f87176-6197-429a-8fb7-890346bde9dc?AWSAccessKeyId=AKIAJRWMYHFMH4DNUF2Q&Expires=1549075566&Signature=9%2FbjkIyX35f7NRCbdrgIOvbmVes%3D",
         "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
@@ -221,6 +228,7 @@ def test_create_put_intent_called(intent_builder, cfn_event, get_bot_response, p
         context = mocker.Mock()
         response = app.create(cfn_event, context, lex_sdk=lex)
         assert intent_builder_instance.put_intent.call_count == 1
-        intent_builder_instance.put_intent.assert_called_with(['test1', 'test2'])
+        intent_param = [{'Name': 'greeting', 'Codehook': 'arn:aws:xxx', 'Plaintext': {'confirmation': 'a confirmation'}}]
+        intent_builder_instance.put_intent.assert_called_with(intent_param)
 
 
