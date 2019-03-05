@@ -35,6 +35,7 @@ def cfn_event():
                 {
                   "Name": 'greeting',
                   "Codehook": "arn:aws:xxx",
+                  "maxAttempts": 3,
                   "Plaintext": {
                       "confirmation": 'a confirmation'
                   }
@@ -210,7 +211,6 @@ def test_create_puts_bot(intent_builder, cfn_event, get_bot_response, put_bot_re
 def test_create_put_intent_called(intent_builder, cfn_event, get_bot_response, put_bot_response, mocker):
 
     lex, bot_name, bot_version = setUp()
-
     bot_props = cfn_event['ResourceProperties']
 
     create_bot_version_response, create_bot_version_params = get_put_bot_version_interaction(bot_name, bot_version)
@@ -226,9 +226,12 @@ def test_create_put_intent_called(intent_builder, cfn_event, get_bot_response, p
             create_bot_version_response, create_bot_version_params)
 
         context = mocker.Mock()
+
         response = app.create(cfn_event, context, lex_sdk=lex)
+
         assert intent_builder_instance.put_intent.call_count == 1
-        intent_param = [{'Name': 'greeting', 'Codehook': 'arn:aws:xxx', 'Plaintext': {'confirmation': 'a confirmation'}}]
-        intent_builder_instance.put_intent.assert_called_with(intent_param)
+        plaintext = {'confirmation': 'a confirmation'}
+        intent_builder_instance.put_intent.assert_called_with(bot_name, 'greeting','arn:aws:xxx',
+                maxAttempts=3, plaintext=plaintext)
 
 

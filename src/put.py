@@ -67,9 +67,16 @@ class LexBotBuilder(LexHelper, object):
         #             slot['slotTypeVersion'] = slot_types[slot['slotType']]
         return intents_definition
 
-    def _put_intents(self, intents_definition):
+    def _put_intents(self, bot_name, intent_definitions):
        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
-       return intent_builder.put_intent(intents_definition)
+
+       for intent_definition in  intent_definitions:
+            intent_name = intent_definition['Name']
+            codehook = intent_definition['Codehook']
+            maxAttempts = intent_definition['maxAttempts']
+            intent_builder.put_intent(bot_name, intent_name, codehook,
+               maxAttempts=maxAttempts,
+               plaintext=intent_definition['Plaintext'])
 
     def _put_slot_types(self, slot_type_definition):
         """Create/Update slot_types"""
@@ -146,7 +153,7 @@ class LexBotBuilder(LexHelper, object):
         # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
 
         intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
-        intent_versions = self._put_intents(intents_definition)
+        intent_versions = self._put_intents(bot_name, intents_definition)
 
         checksum = ''
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)

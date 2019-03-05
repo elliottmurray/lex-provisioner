@@ -14,6 +14,7 @@ codehookName = 'greetingCodehook'
 
 def put_intent_request(bot_name, intent_name, plaintext=None):
     print(plaintext)
+
     return {
         'name': bot_name,
         'description': "Intent {0} for {1}".format(intent_name, bot_name),
@@ -28,7 +29,7 @@ def put_intent_request(bot_name, intent_name, plaintext=None):
                     'content': plaintext['confirmation']
                 },
             ],
-            'maxAttempts': 123,
+            'maxAttempts': 3,
             'responseCard': 'string'
         },
         'rejectionStatement': {
@@ -196,7 +197,8 @@ def test_create_intent_plaintext(put_intent_response, mocker):
         stubber.add_response(
             'put_intent', put_intent_response, put_request)
 
-        intent_builder.put_intent(bot_name, intent_name, codehook_uri, plaintext=plaintext)
+        intent_builder.put_intent(bot_name, intent_name, codehook_uri,
+                maxAttempts=3, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()

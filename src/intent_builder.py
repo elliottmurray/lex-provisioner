@@ -21,7 +21,7 @@ class IntentBuilder(LexHelper, object):
 
 
     # def put_intent(self, intent_definition):
-    def put_intent(self, bot_name, intent_name, codehook_uri, plaintext=None):
+    def put_intent(self, bot_name, intent_name, codehook_uri, maxAttempts=2, plaintext=None):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both
@@ -33,12 +33,13 @@ class IntentBuilder(LexHelper, object):
         # TODO if the intent does not need to invoke a lambda, create it
         new_intent = self._create_lex_resource(
             self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                intent_name, codehook_uri, plaintext=plaintext)
+                intent_name, codehook_uri, maxAttempts, plaintext=plaintext)
         )
         self._logger.info('Created new intent: %s', new_intent)
         return new_intent
 
-    def put_intent_request(self, bot_name, intent_name, codehook_uri, plaintext=None):
+    def put_intent_request(self, bot_name, intent_name, codehook_uri,
+            maxAttempts, plaintext=None):
 
         return {
             'name': bot_name,
@@ -54,7 +55,7 @@ class IntentBuilder(LexHelper, object):
                         'content': plaintext['confirmation']
                     },
                 ],
-                'maxAttempts': 123,
+                'maxAttempts': maxAttempts,
                 'responseCard': 'string'
             },
             'rejectionStatement': {
