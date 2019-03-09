@@ -13,7 +13,6 @@ aws_account_id = '1234567789'
 codehookName = 'greetingCodehook'
 
 def put_intent_request(bot_name, intent_name, plaintext=None):
-    print(plaintext)
 
     return {
         'name': bot_name,
@@ -164,8 +163,6 @@ def put_intent_response():
         'checksum': 'string'
     }
 
-
-# @mock.patch('put.IntentBuilder')
 def test_create_intent_plaintext(put_intent_response, mocker):
     lex = botocore.session.get_session().create_client('lex-models')
     aws_lambda = botocore.session.get_session().create_client('lambda')
@@ -202,4 +199,31 @@ def test_create_intent_plaintext(put_intent_response, mocker):
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
+
+def test_create_intent_missing_rejection_plaintext(put_intent_response, mocker):
+    lex = botocore.session.get_session().create_client('lex-models')
+    aws_lambda = botocore.session.get_session().create_client('lambda')
+    bot_name = 'test bot'
+    intent_name = 'greeting'
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, intent_name)
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        lambda_request = {
+                'FunctionName': codehook_uri,
+                'StatementId': 'lex-{0}-{1}'.format(aws_region, intent_name),
+                'Action': 'lambda:InvokeFunction',
+                'Principal': 'lex.amazonaws.com',
+                'SourceArn': ANY
+        }
+        lambda_stubber.add_response('add_permission', {}, lambda_request)
+
+        intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
+        plaintext = {
+            "confirmation": 'some confirmation message'
+        }
+
+        with pytest.raises(Exception):
+            intent_builder.put_intent(bot_name, intent_name, codehook_uri,
+                    maxAttempts=3, plaintext=plaintext)
+
 

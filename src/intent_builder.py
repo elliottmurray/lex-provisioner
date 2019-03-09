@@ -38,41 +38,45 @@ class IntentBuilder(LexHelper, object):
         self._logger.info('Created new intent: %s', new_intent)
         return new_intent
 
+    def _getConfirmationMessage(self, plaintext, maxAttempts):
+        return {
+            'confirmationPrompt': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': plaintext.get('confirmation','')
+                },
+            ],
+            'maxAttempts': maxAttempts,
+            'responseCard': 'string'
+            },
+            'rejectionStatement': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': plaintext.get('rejection','')
+                    },
+                ],
+                'responseCard': 'string'
+            }
+        }
+
     def put_intent_request(self, bot_name, intent_name, codehook_uri,
             maxAttempts, plaintext=None):
 
-        return {
+        response = {
             'name': bot_name,
             'description': "Intent {0} for {1}".format(intent_name, bot_name),
             'slots': [],
 
             'sampleUtterances': [
             ],
-            'confirmationPrompt': {
-                'messages': [
-                    {
-                        'contentType': 'PlainText',
-                        'content': plaintext['confirmation']
-                    },
-                ],
-                'maxAttempts': maxAttempts,
-                'responseCard': 'string'
-            },
-            'rejectionStatement': {
-                'messages': [
-                    {
-                        'contentType': 'PlainText',
-                        'content': plaintext['rejection']
-                    },
-                ],
-                'responseCard': 'string'
-            },
             'followUpPrompt': {
                 'prompt': {
                     'messages': [
                         {
                             'contentType': 'PlainText',
-                            'content': plaintext['followUpPrompt']
+                            'content': plaintext.get('followUpPrompt','')
                         },
                     ],
                     'maxAttempts': 123,
@@ -82,7 +86,7 @@ class IntentBuilder(LexHelper, object):
                     'messages': [
                         {
                             'contentType': 'PlainText',
-                            'content': plaintext['followUpRejection']
+                            'content': plaintext.get('followUpRejection', '')
                         },
                     ],
                     'responseCard': 'string'
@@ -92,7 +96,7 @@ class IntentBuilder(LexHelper, object):
                 'messages': [
                     {
                         'contentType': 'PlainText',
-                        'content': plaintext['conclusion']
+                        'content': plaintext.get('conclusion', '')
                     },
                 ],
                 'responseCard': 'string'
@@ -111,7 +115,15 @@ class IntentBuilder(LexHelper, object):
             'parentIntentSignature': 'string',
             'checksum': 'string'
         }
+        if (plaintext.get('rejection') is not None) and (plaintext.get('confirmation')
+            is not None):
+            response.update(self._getConfirmationMessage(plaintext, maxAttempts))
+        elif not (plaintext.get('rejection') is None and plaintext.get('confirmation')
+                is None):
+            raise Exception("Must have both rejection and confirmation or" +
+                    "neither. Had ".format(plaintext))
 
+        return response
 
     def _add_permission_to_lex_to_codehook(self, codehook_uri, intent_name):
         if codehook_uri:

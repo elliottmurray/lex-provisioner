@@ -17,9 +17,15 @@
     "abortStatement": {
         "message": "abort statement"
     },
-    "intents": [
-      "test1",
-      "test2"
+    "intents":[
+        {
+          "Name": "greeting",
+          "Codehook": "arn:aws:lambda:us-east-1:773592622512:function:elliotttestgreetingCodeHook",
+          "maxAttempts": 3,
+          "Plaintext": {
+              "confirmation": "a confirmation"
+          }
+        }
     ]
   }
 }
