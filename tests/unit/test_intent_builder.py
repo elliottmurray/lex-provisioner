@@ -6,11 +6,54 @@ import botocore.session
 from botocore.stub import Stubber, ANY
 import datetime
 
+from utils import ValidationError
 from intent_builder import IntentBuilder
 
 aws_region = 'us-east-1'
 aws_account_id = '1234567789'
-codehookName = 'greetingCodehook'
+CODEHOOKNAME = 'greetingCodehook'
+BOT_NAME = 'test bot'
+
+INTENT_NAME = 'greeting'
+
+def put_request_followUp(plaintext):
+    return  {
+        'followUpPrompt': {
+            'prompt': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': plaintext['followUpPrompt']
+                    },
+                ],
+                'maxAttempts': 3,
+                'responseCard': 'string'
+            },
+            'rejectionStatement': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': plaintext['followUpRejection']
+                    },
+                ],
+                'responseCard': 'string'
+            }
+        }
+    }
+
+def put_request_conclusion(plaintext):
+    return {
+        'conclusionStatement': {
+            'messages': [
+                {
+                    'contentType': 'PlainText',
+                    'content': plaintext['conclusion']
+                },
+            ],
+            'responseCard': 'string'
+        },
+    }
+
 
 def put_intent_request(bot_name, intent_name, plaintext=None):
 
@@ -40,37 +83,7 @@ def put_intent_request(bot_name, intent_name, plaintext=None):
             ],
             'responseCard': 'string'
         },
-        'followUpPrompt': {
-            'prompt': {
-                'messages': [
-                    {
-                        'contentType': 'PlainText',
-                        'content': plaintext['followUpPrompt']
-                    },
-                ],
-                'maxAttempts': 123,
-                'responseCard': 'string'
-            },
-            'rejectionStatement': {
-                'messages': [
-                    {
-                        'contentType': 'PlainText',
-                        'content': plaintext['followUpRejection']
-                    },
-                ],
-                'responseCard': 'string'
-            }
-        },
-        'conclusionStatement': {
-            'messages': [
-                {
-                    'contentType': 'PlainText',
-                    'content': plaintext['conclusion']
-                },
-            ],
-            'responseCard': 'string'
-        },
-        'dialogCodeHook': {
+       'dialogCodeHook': {
                 'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(aws_region,
                     aws_account_id, intent_name),
             'messageVersion': '1.0'
@@ -86,6 +99,14 @@ def put_intent_request(bot_name, intent_name, plaintext=None):
         'parentIntentSignature': 'string',
         'checksum': 'string'
     }
+
+@pytest.fixture()
+def lex():
+    return botocore.session.get_session().create_client('lex-models')
+
+@pytest.fixture()
+def aws_lambda():
+    return botocore.session.get_session().create_client('lambda')
 
 @pytest.fixture()
 def put_intent_response():
@@ -149,7 +170,7 @@ def put_intent_response():
         },
         'dialogCodeHook': {
             'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id +
-            ':function:' + codehookName,
+            ':function:' + CODEHOOKNAME,
             'messageVersion': '1.0'
         },
         'fulfillmentActivity': {
@@ -163,22 +184,22 @@ def put_intent_response():
         'checksum': 'string'
     }
 
-def test_create_intent_plaintext(put_intent_response, mocker):
-    lex = botocore.session.get_session().create_client('lex-models')
-    aws_lambda = botocore.session.get_session().create_client('lambda')
-    bot_name = 'test bot'
-    intent_name = 'greeting'
-    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, intent_name)
-
-    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+def stub_lambda_request(lambda_stubber, codehook_uri):
         lambda_request = {
                 'FunctionName': codehook_uri,
-                'StatementId': 'lex-{0}-{1}'.format(aws_region, intent_name),
+                'StatementId': 'lex-{0}-{1}'.format(aws_region, INTENT_NAME),
                 'Action': 'lambda:InvokeFunction',
                 'Principal': 'lex.amazonaws.com',
                 'SourceArn': ANY
         }
         lambda_stubber.add_response('add_permission', {}, lambda_request)
+
+def test_create_intent_plaintext(put_intent_response, mocker,
+        lex, aws_lambda):
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
 
         intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
         plaintext = {
@@ -188,42 +209,64 @@ def test_create_intent_plaintext(put_intent_response, mocker):
                 'followUpRejection':'failed follow on',
                 'conclusion': 'concluded'
                 }
+        put_request =  put_intent_request(BOT_NAME,
+                INTENT_NAME,plaintext=plaintext)
+        put_request.update(put_request_followUp(plaintext))
+        put_request.update(put_request_conclusion(plaintext))
 
-
-        put_request = put_intent_request(bot_name, intent_name, plaintext)
         stubber.add_response(
             'put_intent', put_intent_response, put_request)
 
-        intent_builder.put_intent(bot_name, intent_name, codehook_uri,
+        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 maxAttempts=3, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-def test_create_intent_missing_rejection_plaintext(put_intent_response, mocker):
-    lex = botocore.session.get_session().create_client('lex-models')
-    aws_lambda = botocore.session.get_session().create_client('lambda')
-    bot_name = 'test bot'
-    intent_name = 'greeting'
-    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, intent_name)
+
+def test_create_intent_missing_rejection_plaintext(put_intent_response, mocker,
+        lex, aws_lambda):
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
-        lambda_request = {
-                'FunctionName': codehook_uri,
-                'StatementId': 'lex-{0}-{1}'.format(aws_region, intent_name),
-                'Action': 'lambda:InvokeFunction',
-                'Principal': 'lex.amazonaws.com',
-                'SourceArn': ANY
-        }
-        lambda_stubber.add_response('add_permission', {}, lambda_request)
+        stub_lambda_request(lambda_stubber, codehook_uri)
 
         intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
         plaintext = {
-            "confirmation": 'some confirmation message'
+            "confirmation": 'some confirmation message',
+            'followUpPrompt':'follow on',
+            'followUpRejection':'failed follow on',
         }
 
         with pytest.raises(Exception):
-            intent_builder.put_intent(bot_name, intent_name, codehook_uri,
+            intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                     maxAttempts=3, plaintext=plaintext)
+
+def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
+        lex, aws_lambda):
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
+
+        intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
+        plaintext = {
+            "confirmation": 'some confirmation message',
+            'rejection': 'rejection message',
+            'conclusion': 'the conclusion'
+        }
+
+        put_request =  put_intent_request(BOT_NAME,
+                INTENT_NAME,plaintext=plaintext)
+        put_request.update(put_request_conclusion(plaintext))
+
+        stubber.add_response('put_intent', put_intent_response, put_request)
+
+        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                maxAttempts=3, plaintext=plaintext)
+
+        stubber.assert_no_pending_responses()
+        lambda_stubber.assert_no_pending_responses()
+
 
 

@@ -20,10 +20,11 @@
     "intents":[
         {
           "Name": "greeting",
-          "Codehook": "arn:aws:lambda:us-east-1:773592622512:function:elliotttestgreetingCodeHook",
+          "Codehook": "arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld",
           "maxAttempts": 3,
           "Plaintext": {
-              "confirmation": "a confirmation"
+              "confirmation": "a confirmation",
+              "rejection": "a rejection"
           }
         }
     ]
