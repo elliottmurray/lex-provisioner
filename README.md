@@ -32,7 +32,8 @@ sam build
 
 If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
 ```bash
-sam build --use-container
+sam build -u # --use-container
+sam build -u --skip-pull-image # once you've run it once to get the container
 ```
 
 By default, this command writes built artifacts to `.aws-sam/build` folder.

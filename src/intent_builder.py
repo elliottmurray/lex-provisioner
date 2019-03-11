@@ -32,6 +32,28 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
+    def get_latest_checksum(self, intent_name, lookup_version='$LATEST'):
+        try:
+            get_intent_response = self._lex_sdk.get_intent(name=intent_name, version=lookup_version)
+            return get_intent_response['checksum']
+        except ClientError as ex:
+            self._logger.info("error in get intent {}", ex)
+
+           # http_status_code = None
+           # if 'ResponseMetadata' in ex.response:
+           #     response_metadata = ex.response['ResponseMetadata']
+           #     if 'HTTPStatusCode' in response_metadata:
+           #         http_status_code = response_metadata['HTTPStatusCode']
+           # if http_status_code == 404:
+           #     creation_response = self._create_intent(intent)
+           #     version_response = self._lex_sdk.create_intent_version(name=name, checksum=creation_response['checksum'])
+           #     intent_versions[name] = version_response['version']
+           # else:
+           #     self._logger.info('Lex get_slot_type call failed')
+           #     self._logger.info(ex)
+           #     raise
+
+
 
     # def put_intent(self, intent_definition):
     def put_intent(self, bot_name, intent_name, codehook_uri, maxAttempts=2, plaintext=None):
@@ -40,13 +62,17 @@ class IntentBuilder(LexHelper, object):
         Currently only supports intents that use the same lambda for both
         code hooks (i.e. 'dialogCodeHook' and 'fulfillmentActivity')
         """
-        self._logger.info('put intent')
-
+        self._logger.info('adding permission to codehook')
         self._add_permission_to_lex_to_codehook(codehook_uri, intent_name)
         # TODO if the intent does not need to invoke a lambda, create it
+        checksum = self.get_latest_checksum(intent_name)
+
+        print(checksum)
+
+        self._logger.info('put intent')
         new_intent = self._create_lex_resource(
             self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                intent_name, codehook_uri, maxAttempts, plaintext=plaintext)
+                intent_name, codehook_uri, maxAttempts, checksum=checksum, plaintext=plaintext)
         )
         self._logger.info('Created new intent: %s', new_intent)
         return new_intent
@@ -59,7 +85,7 @@ class IntentBuilder(LexHelper, object):
         return conf
 
     def put_intent_request(self, bot_name, intent_name, codehook_uri,
-            maxAttempts, plaintext=None):
+            maxAttempts, checksum=None, plaintext=None):
 
         response = {
             'name': bot_name,
@@ -85,11 +111,11 @@ class IntentBuilder(LexHelper, object):
                 'type': 'ReturnIntent',
                 'codeHook': {
                     'uri': codehook_uri,
-                    'messageVersion': 'string'
+                    'messageVersion': '1.0'
                 }
             },
             'parentIntentSignature': 'string',
-            'checksum': 'string'
+            'checksum': checksum 
         }
 
         conf = self._create_message(CONFIRMATION_PROMPT, plaintext, maxAttempts)
@@ -100,6 +126,9 @@ class IntentBuilder(LexHelper, object):
         if (follow_up is not None):
             response['followUpPrompt'] = follow_up
 
+        print(response)
+
+        self._logger.info(response)
         return response
 
     def _create_message(self, mapping, plaintext, maxAttempts):
