@@ -4,7 +4,10 @@
 import time
 import boto3
 from botocore.exceptions import ClientError
+
+#from client.exceptions import NotFoundException
 from lex_helper import LexHelper
+
 from utils import ValidationError
 
 CONFIRMATION_PROMPT = {'confirmationPrompt': {
@@ -32,30 +35,30 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
+    def _not_found_resource(self, ex):
+        http_status_code = None
+        if 'ResponseMetadata' in ex.response:
+            response_metadata = ex.response['ResponseMetadata']
+            if 'HTTPStatusCode' in response_metadata:
+                http_status_code = response_metadata['HTTPStatusCode']
+        if http_status_code == 404:
+            return True
+        return False
+
     def get_latest_checksum(self, intent_name, lookup_version='$LATEST'):
         try:
             get_intent_response = self._lex_sdk.get_intent(name=intent_name, version=lookup_version)
             return get_intent_response['checksum']
         except ClientError as ex:
-            self._logger.info("error in get intent {}", ex)
+            self._logger.error(ex)
+#            if self._not_found_resource(ex):
+#                creation_response = self._create_intent(intent)
+#                version_response = self._lex_sdk.create_intent_version(name=intent_name, checksum=creation_response['checksum'])
+#                intent_versions[name] = version_response['version']
+#            else:
+#                self._logger.info('Lex get_slot_type call failed')
+            return None
 
-           # http_status_code = None
-           # if 'ResponseMetadata' in ex.response:
-           #     response_metadata = ex.response['ResponseMetadata']
-           #     if 'HTTPStatusCode' in response_metadata:
-           #         http_status_code = response_metadata['HTTPStatusCode']
-           # if http_status_code == 404:
-           #     creation_response = self._create_intent(intent)
-           #     version_response = self._lex_sdk.create_intent_version(name=name, checksum=creation_response['checksum'])
-           #     intent_versions[name] = version_response['version']
-           # else:
-           #     self._logger.info('Lex get_slot_type call failed')
-           #     self._logger.info(ex)
-           #     raise
-
-
-
-    # def put_intent(self, intent_definition):
     def put_intent(self, bot_name, intent_name, codehook_uri, maxAttempts=2, plaintext=None):
         """Create intent and configure any required lambda permissions
 
@@ -70,10 +73,17 @@ class IntentBuilder(LexHelper, object):
         print(checksum)
 
         self._logger.info('put intent')
-        new_intent = self._create_lex_resource(
-            self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                intent_name, codehook_uri, maxAttempts, checksum=checksum, plaintext=plaintext)
-        )
+        new_intent = None
+        if checksum != None:
+            new_intent = self._create_lex_resource(
+                self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
+                    intent_name, codehook_uri, maxAttempts, checksum=checksum, plaintext=plaintext)
+            )
+        else:
+            new_intent = self._create_lex_resource(
+                self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
+                    intent_name, codehook_uri, maxAttempts, plaintext=plaintext)
+            )
         self._logger.info('Created new intent: %s', new_intent)
         return new_intent
 
@@ -114,9 +124,11 @@ class IntentBuilder(LexHelper, object):
                     'messageVersion': '1.0'
                 }
             },
-            'parentIntentSignature': 'string',
-            'checksum': checksum 
+            'parentIntentSignature': 'string'
         }
+
+        if (checksum != None):
+            response.update({'checksum': checksum})
 
         conf = self._create_message(CONFIRMATION_PROMPT, plaintext, maxAttempts)
         follow_up = self._create_message(FOLLOWUP_PROMPT, plaintext, maxAttempts)
