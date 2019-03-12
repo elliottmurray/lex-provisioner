@@ -54,7 +54,7 @@ def put_request_conclusion(bot_name, intent_name,  plaintext=None):
         },
     }
 
-def put_intent_request(bot_name, intent_name, plaintext=None):
+def put_intent_request(bot_name, intent_name, plaintext=None, checksum='a checksum value'):
 
     return {
         'name': bot_name,
@@ -96,7 +96,7 @@ def put_intent_request(bot_name, intent_name, plaintext=None):
             }
         },
         'parentIntentSignature': 'string',
-        'checksum': 'a checksum value'
+        'checksum': checksum
     }
 
 @pytest.fixture()
@@ -235,13 +235,6 @@ def test_create_intent_plaintext(put_intent_response, mocker,
         stub_get_intent(INTENT_NAME, plaintext, stubber)
         stub_put_intent(INTENT_NAME, plaintext, put_funcs, put_intent_response, stubber)
 
-    #    put_request =  put_intent_request(BOT_NAME,
-    #            INTENT_NAME,plaintext=plaintext)
-    #    put_request.update(put_request_followUp(plaintext))
-    #    put_request.update(put_request_conclusion(plaintext))
-
-    #    stubber.add_response(
-    #        'put_intent', put_intent_response, put_request)
         intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 maxAttempts=3, plaintext=plaintext)
 
