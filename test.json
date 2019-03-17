@@ -24,7 +24,8 @@
           "maxAttempts": 3,
           "Plaintext": {
               "confirmation": "a confirmation",
-              "rejection": "a rejection"
+              "rejection": "a rejection",
+              "conclusion": "a conclusion"
           }
         }
     ]

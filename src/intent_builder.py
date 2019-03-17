@@ -53,7 +53,7 @@ class IntentBuilder(LexHelper, object):
         }
 
         if maxAttempts is not None:
-            message[messageKey]['maxAttempts'] =  maxAttempts
+            message[messageKey]['maxAttempts'] =  int(maxAttempts)
 
         return message
 
@@ -67,7 +67,7 @@ class IntentBuilder(LexHelper, object):
     def _get_followup_message(self, plaintext, maxAttempts):
         followUp = { 'followUpPrompt':
                 {'prompt': {
-                        'maxAttempts': maxAttempts,
+                        'maxAttempts': int(maxAttempts),
                         'messages': [
                             {
                                 'content': plaintext['followUpPrompt'],
@@ -123,7 +123,7 @@ class IntentBuilder(LexHelper, object):
             maxAttempts, plaintext=None):
 
         request = {
-            'name': bot_name,
+            'name': intent_name,
             'description': "Intent {0} for {1}".format(intent_name, bot_name),
             'slots': [],
 
@@ -137,11 +137,9 @@ class IntentBuilder(LexHelper, object):
                 'type': 'ReturnIntent',
                 'codeHook': {
                     'uri': codehook_uri,
-                    'messageVersion': 'string'
+                    'messageVersion': '1.0'
                 }
-            },
-            'parentIntentSignature': 'string',
-            'checksum': 'string'
+            }
         }
 
         self._put_request_confirmation(request, plaintext, maxAttempts)

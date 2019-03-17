@@ -58,7 +58,7 @@ def put_request_conclusion(plaintext):
 def put_intent_request(bot_name, intent_name, plaintext=None):
 
     return {
-        'name': bot_name,
+        'name': intent_name,
         'description': "Intent {0} for {1}".format(intent_name, bot_name),
         'slots': [],
 
@@ -93,11 +93,9 @@ def put_intent_request(bot_name, intent_name, plaintext=None):
             'codeHook': {
                 'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(aws_region,
                     aws_account_id, intent_name),
-                'messageVersion': 'string'
+                'messageVersion': '1.0'
             }
-        },
-        'parentIntentSignature': 'string',
-        'checksum': 'string'
+        }
     }
 
 @pytest.fixture()
