@@ -4,23 +4,8 @@
 import time
 import boto3
 from botocore.exceptions import ClientError
-
-#from client.exceptions import NotFoundException
 from lex_helper import LexHelper
-
 from utils import ValidationError
-
-CONFIRMATION_PROMPT = {'confirmationPrompt': {
-    'success': 'confirmation',
-    'fail': 'rejection'
-    }
-}
-
-FOLLOWUP_PROMPT = {'prompt': {
-    'success': 'followUpPrompt',
-    'fail': 'followUpRejection'
-    }
-}
 
 class IntentBuilder(LexHelper, object):
     def __init__(self, logger, lex_sdk=None, lambda_sdk=None):
@@ -35,53 +20,42 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
-    def _not_found_resource(self, ex):
-        http_status_code = None
-        if 'ResponseMetadata' in ex.response:
-            response_metadata = ex.response['ResponseMetadata']
-            if 'HTTPStatusCode' in response_metadata:
-                http_status_code = response_metadata['HTTPStatusCode']
-        if http_status_code == 404:
-            return True
-        return False
 
-    def get_latest_checksum(self, intent_name, lookup_version='$LATEST'):
-        try:
-            get_intent_response = self._lex_sdk.get_intent(name=intent_name, version=lookup_version)
-            return get_intent_response['checksum']
-        except ClientError as ex:
-            self._logger.error(ex)
-            return None
-
+    # def put_intent(self, intent_definition):
     def put_intent(self, bot_name, intent_name, codehook_uri, maxAttempts=2, plaintext=None):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both
         code hooks (i.e. 'dialogCodeHook' and 'fulfillmentActivity')
         """
-        self._logger.info('adding permission to codehook')
+        self._logger.info('put intent')
+
         self._add_permission_to_lex_to_codehook(codehook_uri, intent_name)
         # TODO if the intent does not need to invoke a lambda, create it
-        checksum = self.get_latest_checksum(intent_name)
-
-        self._logger.info('put intent')
         new_intent = self._create_lex_resource(
-                self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                    intent_name, codehook_uri, maxAttempts, checksum=checksum, plaintext=plaintext)
-            )
-       # new_intent = None
-       # if checksum != None:
-       #     new_intent = self._create_lex_resource(
-       #         self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-       #             intent_name, codehook_uri, maxAttempts, checksum=checksum, plaintext=plaintext)
-       #     )
-       # else:
-       #     new_intent = self._create_lex_resource(
-       #         self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-       #             intent_name, codehook_uri, maxAttempts, plaintext=plaintext)
-       #     )
+            self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
+                intent_name, codehook_uri, maxAttempts, plaintext=plaintext)
+        )
         self._logger.info('Created new intent: %s', new_intent)
         return new_intent
+
+    def _create_message(self, messageKey, content, maxAttempts=None):
+        message = {
+            messageKey: {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': content,
+                    },
+                ],
+                'responseCard': 'string'
+            }
+        }
+
+        if maxAttempts is not None:
+            message[messageKey]['maxAttempts'] =  maxAttempts
+
+        return message
 
     def _get_confirmation_message(self, plaintext, maxAttempts):
         conf = self._create_message('confirmationPrompt', plaintext['confirmation'],
@@ -90,26 +64,72 @@ class IntentBuilder(LexHelper, object):
         conf.update(rej)
         return conf
 
-    def put_intent_request(self, bot_name, intent_name, codehook_uri,
-            maxAttempts, checksum=None, plaintext=None):
+    def _get_followup_message(self, plaintext, maxAttempts):
+        followUp = { 'followUpPrompt':
+                {'prompt': {
+                        'maxAttempts': maxAttempts,
+                        'messages': [
+                            {
+                                'content': plaintext['followUpPrompt'],
+                                'contentType': 'PlainText'
+                            }
+                        ],
+                        'responseCard': 'string'
+                    },
+                    'rejectionStatement': {
+                            'messages': [
+                                {
+                                    'content': plaintext['followUpRejection'],
+                                    'contentType': 'PlainText'
+                                }
+                            ],
+                            'responseCard': 'string'
+                        }
+                    }
+               }
+        return followUp
 
-        response = {
+    def _put_request_confirmation(self, request, plaintext, maxAttempts):
+        if (plaintext.get('rejection') is not None) and (plaintext.get('confirmation')
+            is not None):
+            request.update(self._get_confirmation_message(plaintext, maxAttempts))
+        elif not (plaintext.get('rejection') is None and plaintext.get('confirmation')
+                is None):
+            raise ValidationError("Must have both rejection and confirmation or" +
+                    "neither. Had ".format(plaintext))
+
+    def _put_request_followUp(self, request, plaintext, maxAttempts):
+        if (plaintext.get('followUpPrompt') is not None) and (plaintext.get('followUpRejection') is not None):
+            request.update(self._get_followup_message(plaintext, maxAttempts))
+        elif not (plaintext.get('followUpPrompt') is None) and  (plaintext.get('followUpPrompt') is None):
+            raise ValidationError("Must have both follow up rejection and confirmation or" +
+                    "neither. Had ".format(plaintext))
+
+
+    def _put_request_conclusion(self, request, plaintext):
+        request.update({
+            'conclusionStatement': {
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': plaintext['conclusion']
+                    },
+                ],
+                'responseCard': 'string'
+            },
+        })
+
+    def put_intent_request(self, bot_name, intent_name, codehook_uri,
+            maxAttempts, plaintext=None):
+
+        request = {
             'name': bot_name,
             'description': "Intent {0} for {1}".format(intent_name, bot_name),
             'slots': [],
 
             'sampleUtterances': [
             ],
-            'conclusionStatement': {
-                'messages': [
-                    {
-                        'contentType': 'PlainText',
-                        'content': plaintext.get('conclusion', '')
-                    },
-                ],
-                'responseCard': 'string'
-            },
-            'dialogCodeHook': {
+           'dialogCodeHook': {
                 'uri': codehook_uri,
                 'messageVersion': '1.0'
             },
@@ -117,64 +137,19 @@ class IntentBuilder(LexHelper, object):
                 'type': 'ReturnIntent',
                 'codeHook': {
                     'uri': codehook_uri,
-                    'messageVersion': '1.0'
+                    'messageVersion': 'string'
                 }
             },
-            'parentIntentSignature': 'string'
+            'parentIntentSignature': 'string',
+            'checksum': 'string'
         }
 
-        if (checksum != None):
-            response.update({'checksum': checksum})
+        self._put_request_confirmation(request, plaintext, maxAttempts)
+        self._put_request_followUp(request, plaintext, maxAttempts)
+        self._put_request_conclusion(request, plaintext)
 
-        conf = self._create_message(CONFIRMATION_PROMPT, plaintext, maxAttempts)
-        follow_up = self._create_message(FOLLOWUP_PROMPT, plaintext, maxAttempts)
-        if (conf is not None):
-            response.update(conf)
+        return request
 
-        if (follow_up is not None):
-            response['followUpPrompt'] = follow_up
-
-        print(response)
-
-        self._logger.info(response)
-        return response
-
-    def _create_message(self, mapping, plaintext, maxAttempts):
-        message_key = list(mapping)[0]
-        success_key = mapping[message_key]['success']
-        fail_key = mapping[message_key]['fail']
-
-        if (plaintext.get(success_key) is not None) and (plaintext.get(fail_key) is not None):
-
-            success = plaintext[success_key]
-            fail  = plaintext[fail_key]
-            return  {
-                message_key: {
-                    'messages': [
-                        {
-                            'contentType': 'PlainText',
-                            'content': success,
-                        },
-                    ],
-                   'maxAttempts': maxAttempts,
-                   'responseCard': 'string'
-                },
-                'rejectionStatement': {
-                    'messages': [
-                        {
-                            'contentType': 'PlainText',
-                            'content': fail
-                        },
-                    ],
-                'responseCard': 'string'
-                 }
-            }
-
-        elif not (plaintext.get(success_key) is None and plaintext.get(fail_key)
-                is None):
-            raise ValidationError("Must have both rejection and confirmation or " +
-                    "neither for {} key. Had {} ".format(message_key, plaintext))
-        return None
 
     def _add_permission_to_lex_to_codehook(self, codehook_uri, intent_name):
         if codehook_uri:

@@ -16,7 +16,7 @@ BOT_NAME = 'test bot'
 
 INTENT_NAME = 'greeting'
 
-def put_request_followUp(BOT_NAME, intent_name, plaintext=None):
+def put_request_followUp(plaintext):
     return  {
         'followUpPrompt': {
             'prompt': {
@@ -41,7 +41,7 @@ def put_request_followUp(BOT_NAME, intent_name, plaintext=None):
         }
     }
 
-def put_request_conclusion(bot_name, intent_name,  plaintext=None):
+def put_request_conclusion(plaintext):
     return {
         'conclusionStatement': {
             'messages': [
@@ -54,7 +54,8 @@ def put_request_conclusion(bot_name, intent_name,  plaintext=None):
         },
     }
 
-def put_intent_request(bot_name, intent_name, plaintext=None, checksum='a checksum value'):
+
+def put_intent_request(bot_name, intent_name, plaintext=None):
 
     return {
         'name': bot_name,
@@ -92,11 +93,11 @@ def put_intent_request(bot_name, intent_name, plaintext=None, checksum='a checks
             'codeHook': {
                 'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(aws_region,
                     aws_account_id, intent_name),
-                'messageVersion': '1.0'
+                'messageVersion': 'string'
             }
         },
         'parentIntentSignature': 'string',
-        'checksum': checksum
+        'checksum': 'string'
     }
 
 @pytest.fixture()
@@ -180,7 +181,7 @@ def put_intent_response():
             }
         },
         'parentIntentSignature': 'string',
-        'checksum': 'a checksum value'
+        'checksum': 'string'
     }
 
 def stub_lambda_request(lambda_stubber, codehook_uri):
@@ -193,30 +194,24 @@ def stub_lambda_request(lambda_stubber, codehook_uri):
         }
         lambda_stubber.add_response('add_permission', {}, lambda_request)
 
-def _stub_put_intent(intent_name, plaintext, funcs, response, stub):
-    put_request = {}
+def test_create_intent_missing_rejection_plaintext(put_intent_response, mocker,
+        lex, aws_lambda):
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
 
-    for func in funcs:
-        put_request.update(func(BOT_NAME, intent_name, plaintext))
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
 
-    stub.add_response('put_intent', response, put_request)
+        intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
+        plaintext = {
+            "confirmation": 'some confirmation message'
+        }
 
-def _stub_get_intent(intent_name, plaintext, stubber):
-    get_request = { 'name':intent_name, 'version':'$LATEST'}
-    get_response =  put_intent_request(BOT_NAME, intent_name, plaintext)
-    stubber.add_response(
-        'get_intent', get_response, get_request)
-
-@pytest.fixture()
-def stub_get_intent():
-    return lambda intent_name, plaintext, stub : _stub_get_intent(intent_name, plaintext, stub)
-
-@pytest.fixture()
-def stub_put_intent():
-    return lambda name, plaintext, funcs, response, stub :_stub_put_intent(name, plaintext, funcs, response, stub)
+        with pytest.raises(Exception):
+            intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                    maxAttempts=3, plaintext=plaintext)
 
 def test_create_intent_plaintext(put_intent_response, mocker,
-        lex, aws_lambda, stub_get_intent, stub_put_intent):
+        lex, aws_lambda):
     codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
@@ -230,10 +225,13 @@ def test_create_intent_plaintext(put_intent_response, mocker,
                 'followUpRejection':'failed follow on',
                 'conclusion': 'concluded'
                 }
+        put_request =  put_intent_request(BOT_NAME,
+                INTENT_NAME,plaintext=plaintext)
+        put_request.update(put_request_followUp(plaintext))
+        put_request.update(put_request_conclusion(plaintext))
 
-        put_funcs = [put_intent_request,put_request_followUp,put_request_conclusion]
-        stub_get_intent(INTENT_NAME, plaintext, stubber)
-        stub_put_intent(INTENT_NAME, plaintext, put_funcs, put_intent_response, stubber)
+        stubber.add_response(
+            'put_intent', put_intent_response, put_request)
 
         intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 maxAttempts=3, plaintext=plaintext)
@@ -241,27 +239,8 @@ def test_create_intent_plaintext(put_intent_response, mocker,
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-
-def test_create_intent_missing_rejection_plaintext(put_intent_response, mocker,
-        lex, aws_lambda):
-    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
-
-    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
-        stub_lambda_request(lambda_stubber, codehook_uri)
-
-        intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
-        plaintext = {
-            "confirmation": 'some confirmation message',
-            'followUpPrompt':'follow on',
-            'followUpRejection':'failed follow on',
-        }
-
-        with pytest.raises(Exception):
-            intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                    maxAttempts=3, plaintext=plaintext)
-
 def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
-        lex, aws_lambda, stub_get_intent, stub_put_intent):
+        lex, aws_lambda):
     codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
@@ -274,10 +253,11 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
             'conclusion': 'the conclusion'
         }
 
-        put_funcs = [put_intent_request, put_request_conclusion]
+        put_request =  put_intent_request(BOT_NAME,
+                INTENT_NAME,plaintext=plaintext)
+        put_request.update(put_request_conclusion(plaintext))
 
-        stub_get_intent(INTENT_NAME, plaintext, stubber)
-        stub_put_intent(INTENT_NAME, plaintext, put_funcs, put_intent_response, stubber)
+        stubber.add_response('put_intent', put_intent_response, put_request)
 
         intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 maxAttempts=3, plaintext=plaintext)
