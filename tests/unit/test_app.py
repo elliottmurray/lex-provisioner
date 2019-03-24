@@ -1,15 +1,15 @@
 import requests
-import crhelper
+import botocore.session
+from botocore.stub import Stubber, ANY
 
 import mock
 import pytest
 from pytest_mock import mocker
-import botocore.session
-from botocore.stub import Stubber, ANY
-import datetime
-
 import app
+import crhelper
 
+BOT_NAME = 'pythontestLexBot'
+BOT_VERSION = '$LATEST'
 
 @pytest.fixture()
 def cfn_event():
@@ -33,12 +33,12 @@ def cfn_event():
             },
             "intents":[
                 {
-                  "Name": 'greeting',
-                  "Codehook": "arn:aws:xxx",
-                  "maxAttempts": 3,
-                  "Plaintext": {
-                      "confirmation": 'a confirmation'
-                  }
+                    "Name": 'greeting',
+                    "Codehook": "arn:aws:xxx",
+                    "maxAttempts": 3,
+                    "Plaintext": {
+                        "confirmation": 'a confirmation'
+                    }
                 }
             ],
             },
@@ -70,7 +70,6 @@ def get_bot_response():
                 {
                     "content": "Hmm, I am sorry but I am still learning and I'm not familiar with those words. Could you try again using different words?",
                     "contentType": "PlainText"
-                    # "groupNumber": 1
                 }
             ],
             "responseCard": "string"
@@ -97,17 +96,17 @@ def get_bot_response():
 
 @pytest.fixture()
 def put_bot_response():
+    """ put bot response """
     return {
         "name": "test bot",
         "locale": 'en-US',
         "checksum": 'rnd value',
         "abortStatement": {
             "messages": [
-                  {
-                      "content": "I'm sorry, but I am having trouble understanding. I'm going to pass you over to one of my team mates (they're human!). Please wait to be connected, they will have any information we have discussed.",
-                      "contentType": "PlainText"
-                      # "groupNumber": 1
-                  }
+                {
+                    "content": "I'm sorry, but I am having trouble understanding. I'm going to pass you over to one of my team mates (they're human!). Please wait to be connected, they will have any information we have discussed.",
+                    "contentType": "PlainText"
+                }
             ]
         },
         "childDirected": True,
@@ -117,7 +116,6 @@ def put_bot_response():
                 {
                     "content": "Hmm, I am sorry but I am still learning and I'm not familiar with those words. Could you try again using different words?",
                     "contentType": "PlainText"
-                    # "groupNumber": 1
                 }
             ],
             "responseCard": "string"
@@ -131,32 +129,36 @@ def put_bot_response():
     }
 
 def put_bot_request(bot_name, bot_props, put_bot_response):
+    """ put bot request """
+
+        #'checksum': ANY,
     return {
-                            'abortStatement': ANY,
-                            'checksum': ANY,
-                            'childDirected': False,
-                            'clarificationPrompt': {
-                              'maxAttempts': 1,
-                              'messages': [
-                                {
-                                  'content': bot_props['clarification']['message'],
-                                  'contentType': 'PlainText'
-                                }
-                              ]
-                            },
-                            'description': put_bot_response['description'],
-                            'idleSessionTTLInSeconds': ANY,
-                            'name': bot_name,
-                            'intents': [{'intentName': 'someName', 'intentVersion': '$LATEST'}],
-                             'locale': put_bot_response['locale'],
-                            'processBehavior': 'BUILD'
-                          }
+        'abortStatement': ANY,
+        'childDirected': False,
+        'clarificationPrompt': {
+            'maxAttempts': 1,
+            'messages': [
+                {
+                    'content': bot_props['clarification']['message'],
+                    'contentType': 'PlainText'
+                }
+            ]
+        },
+        'description': put_bot_response['description'],
+        'idleSessionTTLInSeconds': ANY,
+        'name': bot_name,
+        'intents': [{'intentName': 'greeting', 'intentVersion': '$LATEST'}],
+        'locale': put_bot_response['locale'],
+        'processBehavior': 'BUILD'
+    }
 
-def get_bot_request(bot_name, bot_version):
-    expected_get_params = {
-        'name': bot_name, 'versionOrAlias': bot_version}
+def get_bot_request():
+    """ get bot request """
+    return {
+        'name': BOT_NAME, 'versionOrAlias': BOT_VERSION}
 
-def get_put_bot_version_interaction(bot_name, bot_version):
+def put_bot_version_interaction(bot_name, bot_version):
+    """ put bot request interaction"""
     create_bot_version_response = {
         'name': bot_name,
         'version': bot_version
@@ -168,62 +170,70 @@ def get_put_bot_version_interaction(bot_name, bot_version):
     }
     return create_bot_version_response, create_bot_version_params
 
-def setUp():
-    lex = botocore.session.get_session().create_client('lex-models')
-    bot_name = 'pythontestLexBot'
-    bot_version = '$LATEST'
-    return lex, bot_name, bot_version
+def setup():
+    """ setup function """
+    return  botocore.session.get_session().create_client('lex-models')
+
+def stub_get_request(stubber):
+    """stub get request"""
+    stubber.add_response('get_bot', get_bot_response(), get_bot_request())
 
 @mock.patch('put.IntentBuilder')
-def test_create_puts_bot(intent_builder, cfn_event, get_bot_response, put_bot_response,
+def test_create_puts_bot(intent_builder, cfn_event, put_bot_response,
         mocker):
-    lex, bot_name, bot_version = setUp()
+    """ test_create_puts_bot"""
+    lex = setup()
     bot_props = cfn_event['ResourceProperties']
 
-    expected_put_params = put_bot_request(bot_name, bot_props, put_bot_response)
+    expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
 
-    create_bot_version_response, create_bot_version_params = get_put_bot_version_interaction(bot_name, bot_version)
+    create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
 
     with Stubber(lex) as stubber:
         intent_builder_instance = intent_builder.return_value
         intent_builder_instance.put_intent.return_value = True
+        stub_get_request(stubber)
 
-        # stubber.add_response('get_intent', {'checksum': '1234'})
-        # stubber.add_response('put_intent', {})
-
+#        stubber.add_response('get_bot', put_bot_response, get_bot_request)
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
 
         stubber.add_response('create_bot_version',
-            create_bot_version_response, create_bot_version_params)
+                             create_bot_version_response, create_bot_version_params)
 
         context = mocker.Mock()
         context.aws_request_id = 12345
         context.get_remaining_time_in_millis.return_value = 100000.0
 
         response = app.create(cfn_event, context, lex_sdk=lex)
-        assert response['BotName'] == bot_name
-        assert response['BotVersion'] == bot_version
+        assert response['BotName'] == BOT_NAME
+        assert response['BotVersion'] == BOT_VERSION
 
         stubber.assert_no_pending_responses()
 
 
 @mock.patch('put.IntentBuilder')
-def test_create_put_intent_called(intent_builder, cfn_event, get_bot_response, put_bot_response, mocker):
+def test_create_put_intent_called(intent_builder,
+                                  cfn_event,
+                                  get_bot_response,
+                                  put_bot_response,
+                                  mocker):
+    """ create put intent called test """
 
-    lex, bot_name, bot_version = setUp()
+    lex = setup()
     bot_props = cfn_event['ResourceProperties']
 
-    create_bot_version_response, create_bot_version_params = get_put_bot_version_interaction(bot_name, bot_version)
-    expected_put_params = put_bot_request(bot_name, bot_props, put_bot_response)
+    create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
+    expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
 
     with Stubber(lex) as stubber:
         intent_builder_instance = intent_builder.return_value
         intent_builder_instance.put_intent.return_value = True
 
+        stub_get_request(stubber)
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
 
         stubber.add_response('create_bot_version',
-            create_bot_version_response, create_bot_version_params)
+                             create_bot_version_response, create_bot_version_params)
 
         context = mocker.Mock()
 
@@ -231,7 +241,7 @@ def test_create_put_intent_called(intent_builder, cfn_event, get_bot_response, p
 
         assert intent_builder_instance.put_intent.call_count == 1
         plaintext = {'confirmation': 'a confirmation'}
-        intent_builder_instance.put_intent.assert_called_with(bot_name, 'greeting','arn:aws:xxx',
+        intent_builder_instance.put_intent.assert_called_with(BOT_NAME, 'greeting','arn:aws:xxx',
                 maxAttempts=3, plaintext=plaintext)
 
 
