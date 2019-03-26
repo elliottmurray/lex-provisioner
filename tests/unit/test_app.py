@@ -194,7 +194,6 @@ def test_create_puts_bot(intent_builder, cfn_event, put_bot_response,
         intent_builder_instance.put_intent.return_value = True
         stub_get_request(stubber)
 
-#        stubber.add_response('get_bot', put_bot_response, get_bot_request)
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
 
         stubber.add_response('create_bot_version',
@@ -242,6 +241,6 @@ def test_create_put_intent_called(intent_builder,
         assert intent_builder_instance.put_intent.call_count == 1
         plaintext = {'confirmation': 'a confirmation'}
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME, 'greeting','arn:aws:xxx',
-                maxAttempts=3, plaintext=plaintext)
+                                                              max_attempts=3, plaintext=plaintext)
 
 

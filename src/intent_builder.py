@@ -20,9 +20,7 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
-
-    # def put_intent(self, intent_definition):
-    def put_intent(self, bot_name, intent_name, codehook_uri, maxAttempts=2, plaintext=None):
+    def put_intent(self, bot_name, intent_name, codehook_uri, max_attempts=2, plaintext=None):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both
@@ -34,12 +32,12 @@ class IntentBuilder(LexHelper, object):
         # TODO if the intent does not need to invoke a lambda, create it
         new_intent = self._create_lex_resource(
             self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                intent_name, codehook_uri, maxAttempts, plaintext=plaintext)
+                intent_name, codehook_uri, max_attempts, plaintext=plaintext)
         )
         self._logger.info('Created new intent: %s', new_intent)
         return new_intent
 
-    def _create_message(self, messageKey, content, maxAttempts=None):
+    def _create_message(self, messageKey, content, max_attempts=None):
         message = {
             messageKey: {
                 'messages': [
@@ -52,42 +50,43 @@ class IntentBuilder(LexHelper, object):
             }
         }
 
-        if maxAttempts is not None:
-            message[messageKey]['maxAttempts'] =  int(maxAttempts)
+        if max_attempts is not None:
+            message[messageKey]['maxAttempts'] = int(max_attempts)
 
         return message
 
-    def _get_confirmation_message(self, plaintext, maxAttempts):
+    def _get_confirmation_message(self, plaintext, max_attempts):
         conf = self._create_message('confirmationPrompt', plaintext['confirmation'],
-                maxAttempts)
+                                    max_attempts)
         rej = self._create_message('rejectionStatement', plaintext['rejection'])
         conf.update(rej)
         return conf
 
-    def _get_followup_message(self, plaintext, maxAttempts):
-        followUp = { 'followUpPrompt':
-                {'prompt': {
-                        'maxAttempts': int(maxAttempts),
-                        'messages': [
-                            {
-                                'content': plaintext['followUpPrompt'],
-                                'contentType': 'PlainText'
-                            }
-                        ],
-                        'responseCard': 'string'
-                    },
-                    'rejectionStatement': {
-                            'messages': [
-                                {
-                                    'content': plaintext['followUpRejection'],
-                                    'contentType': 'PlainText'
-                                }
-                            ],
-                            'responseCard': 'string'
+    def _get_followup_message(self, plaintext, max_attempts):
+        follow_up = {
+            'followUpPrompt':{
+                'prompt': {
+                    'maxAttempts': int(max_attempts),
+                    'messages': [
+                        {
+                            'content': plaintext['followUpPrompt'],
+                            'contentType': 'PlainText'
                         }
-                    }
-               }
-        return followUp
+                    ],
+                    'responseCard': 'string'
+                },
+                'rejectionStatement': {
+                    'messages': [
+                        {
+                            'content': plaintext['followUpRejection'],
+                            'contentType': 'PlainText'
+                        }
+                    ],
+                    'responseCard': 'string'
+                }
+            }
+        }
+        return follow_up
 
     def _put_request_confirmation(self, request, plaintext, maxAttempts):
         if (plaintext.get('rejection') is not None) and (plaintext.get('confirmation')
@@ -120,7 +119,7 @@ class IntentBuilder(LexHelper, object):
         })
 
     def put_intent_request(self, bot_name, intent_name, codehook_uri,
-            maxAttempts, plaintext=None):
+                           max_attempts, plaintext=None):
 
         request = {
             'name': intent_name,
@@ -142,8 +141,8 @@ class IntentBuilder(LexHelper, object):
             }
         }
 
-        self._put_request_confirmation(request, plaintext, maxAttempts)
-        self._put_request_followUp(request, plaintext, maxAttempts)
+        self._put_request_confirmation(request, plaintext, max_attempts)
+        self._put_request_followUp(request, plaintext, max_attempts)
         self._put_request_conclusion(request, plaintext)
 
         return request

@@ -77,10 +77,10 @@ class LexBotBuilder(LexHelper, object):
        for intent_definition in  intent_definitions:
             intent_name = intent_definition['Name']
             codehook = intent_definition['Codehook']
-            maxAttempts = intent_definition['maxAttempts']
+            max_attempts = intent_definition['maxAttempts']
             intent_builder.put_intent(bot_name, intent_name, codehook,
-               maxAttempts=maxAttempts,
-               plaintext=intent_definition['Plaintext'])
+                                      max_attempts=max_attempts,
+                                      plaintext=intent_definition['Plaintext'])
 
     def _put_slot_types(self, slot_type_definition):
         """Create/Update slot_types"""

@@ -206,7 +206,7 @@ def test_create_intent_missing_rejection_plaintext(put_intent_response, mocker,
 
         with pytest.raises(Exception):
             intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                    maxAttempts=3, plaintext=plaintext)
+                    max_attempts=3, plaintext=plaintext)
 
 def test_create_intent_plaintext(put_intent_response, mocker,
         lex, aws_lambda):
@@ -232,7 +232,7 @@ def test_create_intent_plaintext(put_intent_response, mocker,
             'put_intent', put_intent_response, put_request)
 
         intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                maxAttempts=3, plaintext=plaintext)
+                max_attempts=3, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
@@ -258,7 +258,7 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
         stubber.add_response('put_intent', put_intent_response, put_request)
 
         intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                maxAttempts=3, plaintext=plaintext)
+                max_attempts=3, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
