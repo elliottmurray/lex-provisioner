@@ -110,7 +110,7 @@ def aws_lambda():
 def put_intent_response():
 
     return {
-        'name': "test bot",
+        'name': "greeting",
         'description': 'a description',
         'slots': [],
 
@@ -179,6 +179,7 @@ def put_intent_response():
             }
         },
         'parentIntentSignature': 'string',
+        'version': '1',
         'checksum': 'string'
     }
 
@@ -217,14 +218,14 @@ def test_create_intent_plaintext(put_intent_response, mocker,
 
         intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
         plaintext = {
-                "confirmation": 'some confirmation message',
-                'rejection': 'rejection message',
-                'followUpPrompt':'follow on',
-                'followUpRejection':'failed follow on',
-                'conclusion': 'concluded'
-                }
+            "confirmation": 'some confirmation message',
+            'rejection': 'rejection message',
+            'followUpPrompt':'follow on',
+            'followUpRejection':'failed follow on',
+            'conclusion': 'concluded'
+        }
         put_request =  put_intent_request(BOT_NAME,
-                INTENT_NAME,plaintext=plaintext)
+                                          INTENT_NAME,plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
         put_request.update(put_request_conclusion(plaintext))
 
@@ -236,6 +237,40 @@ def test_create_intent_plaintext(put_intent_response, mocker,
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
+
+def test_create_intent_response(put_intent_response, mocker,
+        lex, aws_lambda):
+    """ test the response from create intent """
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
+
+        intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
+        plaintext = {
+            "confirmation": 'some confirmation message',
+            'rejection': 'rejection message',
+            'followUpPrompt':'follow on',
+            'followUpRejection':'failed follow on',
+            'conclusion': 'concluded'
+        }
+        put_request = put_intent_request(BOT_NAME,
+                INTENT_NAME, plaintext=plaintext)
+        put_request.update(put_request_followUp(plaintext))
+        put_request.update(put_request_conclusion(plaintext))
+
+        stubber.add_response(
+            'put_intent', put_intent_response, put_request)
+
+        response = intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                max_attempts=3, plaintext=plaintext)
+
+        stubber.assert_no_pending_responses()
+        lambda_stubber.assert_no_pending_responses()
+
+        assert response['intentName'] == 'greeting'
+        assert response['intentVersion'] == '1'
+
 
 def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
         lex, aws_lambda):

@@ -45,13 +45,14 @@ class LexBotBuilder(LexHelper, object):
 
                 creation_response = self._create_lex_resource(
                     self._lex_sdk.put_bot, 'put_bot', bot_properties)
+                print(bot_properties)
                 version_response = self._lex_sdk.create_bot_version(
                     name=bot_name, checksum=creation_response['checksum'])
                 return version_response
-            else:
-                self._logger.info('Lex get_bot call failed')
-                self._logger.info(ex)
-                raise
+            self._logger.info('Lex get_bot call failed')
+            self._logger.info(ex)
+            raise
+
         creation_response = self._create_lex_resource(
             self._lex_sdk.put_bot, 'put_bot', bot_properties)
 
@@ -73,14 +74,18 @@ class LexBotBuilder(LexHelper, object):
 
     def _put_intents(self, bot_name, intent_definitions):
        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
+       intent_versions = []
 
        for intent_definition in  intent_definitions:
             intent_name = intent_definition['Name']
             codehook = intent_definition['Codehook']
             max_attempts = intent_definition['maxAttempts']
-            intent_builder.put_intent(bot_name, intent_name, codehook,
-                                      max_attempts=max_attempts,
-                                      plaintext=intent_definition['Plaintext'])
+            intent_versions.append(
+                intent_builder.put_intent(bot_name, intent_name, codehook,
+                max_attempts=max_attempts,
+                plaintext=intent_definition['Plaintext']))
+
+       return intent_versions
 
     def _put_slot_types(self, slot_type_definition):
         """Create/Update slot_types"""
@@ -145,27 +150,32 @@ class LexBotBuilder(LexHelper, object):
             "idleSessionTTLInSeconds": 3000
         }
 
-        properties.update(self._get_intent_versions(resource_properties))
+        #properties.update(self._get_intent_versions(resource_properties))
+        print("Props")
+        print(properties)
         return properties
 
-    def _get_intent_versions(self, resource_properties):
-        intents = {'intents': []}
-        for intent in resource_properties['intents']:
-            intents['intents'].append({'intentName': intent['Name'],
-                                       'intentVersion': '$LATEST'})
+ #   def _get_intent_versions(self, resource_properties):
+ #       intents = {'intents': []}
+ #       for intent in resource_properties['intents']:
+ #           intents['intents'].append({'intentName': intent['Name'],
+ #                                      'intentVersion': '$LATEST'})
 
-        return intents
+ #       return intents
 
     def put(self, bot_name, resource_properties):
         """Create/Update lex-bot resources; bot, intents, slot_types"""
         # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
 
         intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
-        self._put_intents(bot_name, intents_definition)
+        intent_defs = self._put_intents(bot_name, intents_definition)
+        print("defs")
+        print(intent_defs)
 
         checksum = ''
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
         bot_properties = self._bot_put_properties(bot_name, checksum, resource_properties)
+        bot_properties.update({"intents": intent_defs})
 
         bot_response = self._put_bot(bot_name, bot_properties)
         return bot_response

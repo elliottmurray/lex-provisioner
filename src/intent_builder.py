@@ -34,8 +34,13 @@ class IntentBuilder(LexHelper, object):
             self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
                 intent_name, codehook_uri, max_attempts, plaintext=plaintext)
         )
-        self._logger.info('Created new intent: %s', new_intent)
-        return new_intent
+        version_response = self._lex_sdk.create_intent_version(name=intent_name,
+                                                               checksum=new_intent['checksum'])
+
+        self._logger.info('Created new intent: %s', version_response)
+        return { "intentName": version_response['name'], "intentVersion": # "1"}
+                version_response['version']}
+        #return new_intent
 
     def _create_message(self, messageKey, content, max_attempts=None):
         message = {
