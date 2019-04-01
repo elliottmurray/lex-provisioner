@@ -224,13 +224,16 @@ def test_create_intent_plaintext(put_intent_response, mocker,
             'followUpRejection':'failed follow on',
             'conclusion': 'concluded'
         }
-        put_request =  put_intent_request(BOT_NAME,
+        put_request = put_intent_request(BOT_NAME,
                                           INTENT_NAME,plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
         put_request.update(put_request_conclusion(plaintext))
 
         stubber.add_response(
             'put_intent', put_intent_response, put_request)
+        stubber.add_response('create_intent_version', {'name': INTENT_NAME,
+                                                       'version': 'ANY'},
+                             {'checksum': 'string', 'name': 'greeting'})
 
         intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 max_attempts=3, plaintext=plaintext)
