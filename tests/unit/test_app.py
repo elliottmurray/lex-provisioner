@@ -190,8 +190,9 @@ def test_create_puts_bot(intent_builder, cfn_event, put_bot_response,
     create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
 
     with Stubber(lex) as stubber:
+        put_intent_response = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
         intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.return_value = True
+        intent_builder_instance.put_intent.return_value = put_intent_response
         stub_get_request(stubber)
 
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
@@ -225,8 +226,9 @@ def test_create_put_intent_called(intent_builder,
     expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
 
     with Stubber(lex) as stubber:
+        put_intent_response = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
         intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.return_value = True
+        intent_builder_instance.put_intent.return_value = put_intent_response
 
         stub_get_request(stubber)
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
