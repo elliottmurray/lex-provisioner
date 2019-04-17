@@ -30,6 +30,10 @@ def cfn_event():
         "StackId": "arn:aws:cloudformation:us-east-1:773592622512:stack/python-test/db2706d0-2683-11e9-a40a-0a515b01a4a4"
       }
 
+@pytest.mark.skip(reason="no way of currently testing this")
+def test_send_cfn_confirmation():
+     ret = app.send_cfn_confirmation(cfn_event, context)
+
 # def test_lambda_handler(cfn_event, mocker):
 #     context = mocker.Mock()
 #     context.aws_request_id = 12345
