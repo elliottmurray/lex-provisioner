@@ -19,6 +19,7 @@
 from __future__ import print_function
 import logging
 import threading
+import os
 import json
 from botocore.vendored import requests
 
@@ -42,8 +43,13 @@ def log_config(event, loglevel=None, botolevel=None):
     return mainlogger
 
 
-def send(event, context, responseStatus, responseData, physicalResourceId,
+def send_cfn_confirmation(event, context, responseStatus, responseData, physicalResourceId,
          logger, reason=None):
+
+    if (os.environ['CONFIRM'] == 'False'): # is there a better way of doing
+        # this? I think there are some runtime options with SAM
+        logger.info("In DEBUG mode and not confirming")
+        return
 
     responseUrl = event['ResponseURL']
     logger.info("CFN response URL: " + responseUrl)
@@ -84,7 +90,7 @@ def send(event, context, responseStatus, responseData, physicalResourceId,
 # Function that executes just before lambda excecution times out
 def timeout(event, context, logger):
     logger.error("Execution is about to time out, sending failure message")
-    send(event, context, "FAILED", None, None, reason="Execution timed out",
+    send_cfn_confirmation(event, context, "FAILED", None, None, reason="Execution timed out",
          logger=logger)
 
 
@@ -109,7 +115,7 @@ def cfn_handler(event, context, create, update, delete, logger, init_failed):
     logger.debug("EVENT: " + str(event))
     # handle init failures
     if init_failed:
-        send(event, context, "FAILED", responseData, physicalResourceId,
+        send_cfn_confirmation(event, context, "FAILED", responseData, physicalResourceId,
              logger, init_failed)
         raise
 
@@ -130,13 +136,13 @@ def cfn_handler(event, context, create, update, delete, logger, init_failed):
 
         # Send response back to CloudFormation
         logger.info("Completed successfully, sending response to cfn")
-        send(event, context, "SUCCESS", responseData, physicalResourceId,
+        send_cfn_confirmation(event, context, "SUCCESS", responseData, physicalResourceId,
              logger=logger)
 
     # Catch any exceptions, log the stacktrace, send a failure back to
     # CloudFormation and then raise an exception
     except Exception as e:
         logger.error(e, exc_info=True)
-        send(event, context, "FAILED", responseData, physicalResourceId,
+        send_cfn_confirmation(event, context, "FAILED", responseData, physicalResourceId,
              reason=e, logger=logger)
         raise

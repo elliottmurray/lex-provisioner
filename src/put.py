@@ -11,6 +11,10 @@ from intent_builder import IntentBuilder
 from lex_helper import LexHelper
 
 class LexBotBuilder(LexHelper, object):
+
+    MAX_DELETE_TRIES = 5
+    RETRY_SLEEP = 5
+
     """Create/Update different elements that make up a Lex bot"""
 
     def __init__(self, logger, lex_sdk=None):
@@ -73,19 +77,17 @@ class LexBotBuilder(LexHelper, object):
 
     def _put_intents(self, bot_name, intent_definitions):
         print('pt intents')
-        print(intent_definitions)
-        print(len(intent_definitions))
         intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
         intent_versions = []
 
         for intent_definition in intent_definitions:
-            intent_name = intent_definition['Name']
-            codehook = intent_definition['Codehook']
-            max_attempts = intent_definition['maxAttempts']
+            intent_name = intent_definition.get('Name')
+            codehook = intent_definition.get('Codehook')
+            max_attempts = intent_definition.get('maxAttempts')
             intent_versions.append(
-                intent_builder.put_intent(bot_name, intent_name, codehook,
-                max_attempts=max_attempts,
-                plaintext=intent_definition['Plaintext']))
+              intent_builder.put_intent(bot_name, intent_name, codehook,
+              max_attempts=max_attempts,
+              plaintext=intent_definition.get('Plaintext')))
 
         return intent_versions
 
@@ -180,10 +182,9 @@ class LexBotBuilder(LexHelper, object):
         bot_properties.update({"intents": intent_defs})
 
         bot_response = self._put_bot(bot_name, bot_properties)
+        print("returned from _put_bot")
+        print(bot_response)
         return bot_response
-
-    MAX_DELETE_TRIES = 5
-    RETRY_SLEEP = 5
 
     def _delete_bot(self, bot_definition):
         '''Delete bot'''

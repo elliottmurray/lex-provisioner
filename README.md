@@ -44,9 +44,12 @@ By default, this command writes built artifacts to `.aws-sam/build` folder.
 
 ```bash
 sam local invoke -e test.json
+sam local invoke -e test.json -n test-env.json # override env vars option
 ```
 
-test.json is an example event. This will not work because it is not yet as it doesn't have a yaml file.
+test.json is an example event. test-env.json is a sample json file to override
+env vars which may be necessary to not fail on callback of confirmation urls in
+cfn
 
 
 If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`

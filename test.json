@@ -1,7 +1,7 @@
 {
   "RequestType": "Create",
   "RequestId": "67eb0cbc-e751-4356-a86d-22bb54a63f5c",
-  "ResponseURL": "http://pre-signed-url-for-create-response?",
+  "ResponseURL": "http://localhost:8888",
   "ResourceType": "Custom::LexBot",
   "LogicalResourceId": "LexBot",
   "StackId": "arn:aws:cloudformation:us-east-2:namespace:stack/stack-name/guid",
