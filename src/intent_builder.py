@@ -38,8 +38,8 @@ class IntentBuilder(LexHelper, object):
                                                                checksum=new_intent['checksum'])
 
         self._logger.info('Created new intent: %s', version_response)
-        return { "intentName": version_response['name'], "intentVersion": # "1"}
-                version_response['version']}
+        return { "intentName": version_response['name'],
+                "intentVersion": version_response['version']}
         #return new_intent
 
     def _create_message(self, messageKey, content, max_attempts=None):
@@ -125,6 +125,11 @@ class IntentBuilder(LexHelper, object):
 
     def put_intent_request(self, bot_name, intent_name, codehook_uri,
                            max_attempts, plaintext=None):
+#               'codeHook': {
+#                    'uri': codehook_uri,
+#                    'messageVersion': '1.0'
+#     }
+# for when fulfillment activity needs a codehook this will be needed
 
         request = {
             'name': intent_name,
@@ -138,17 +143,14 @@ class IntentBuilder(LexHelper, object):
                 'messageVersion': '1.0'
             },
             'fulfillmentActivity': {
-                'type': 'ReturnIntent',
-                'codeHook': {
-                    'uri': codehook_uri,
-                    'messageVersion': '1.0'
-                }
-            }
+                'type': 'ReturnIntent'
+           }
         }
-
         self._put_request_confirmation(request, plaintext, max_attempts)
         self._put_request_followUp(request, plaintext, max_attempts)
         self._put_request_conclusion(request, plaintext)
+
+        self._logger.info(request)
 
         return request
 

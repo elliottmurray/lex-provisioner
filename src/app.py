@@ -75,7 +75,7 @@ def _add_prefix(lex_definition, name_prefix, aws_region, aws_account_id):
                 ),
                 **intent
             ),
-            lex_definition['intents']
+            lex_definition.get('intents')
         )
     )
 

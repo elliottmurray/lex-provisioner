@@ -19,7 +19,7 @@
     },
     "intents":[
         {
-          "Name": "greeting",
+          "Name": "elliott_helloworld",
           "Codehook": "arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld",
           "maxAttempts": 3,
           "Plaintext": {

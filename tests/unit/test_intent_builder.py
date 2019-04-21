@@ -89,12 +89,7 @@ def put_intent_request(bot_name, intent_name, plaintext=None):
             'messageVersion': '1.0'
         },
         'fulfillmentActivity': {
-            'type': 'ReturnIntent',
-            'codeHook': {
-                'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(aws_region,
-                    aws_account_id, intent_name),
-                'messageVersion': '1.0'
-            }
+            'type': 'ReturnIntent'
         }
     }
 

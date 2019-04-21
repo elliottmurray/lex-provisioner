@@ -49,6 +49,7 @@ class LexBotBuilder(LexHelper, object):
 
                 creation_response = self._create_lex_resource(
                     self._lex_sdk.put_bot, 'put_bot', bot_properties)
+
                 version_response = self._lex_sdk.create_bot_version(
                     name=bot_name, checksum=creation_response['checksum'])
                 return version_response
