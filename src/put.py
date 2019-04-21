@@ -50,8 +50,12 @@ class LexBotBuilder(LexHelper, object):
                 creation_response = self._create_lex_resource(
                     self._lex_sdk.put_bot, 'put_bot', bot_properties)
 
-                version_response = self._lex_sdk.create_bot_version(
-                    name=bot_name, checksum=creation_response['checksum'])
+                version_response = self._create_lex_resource(
+                    self._lex_sdk.create_bot_version, 'create_bot_version',
+                    {
+                        'name': bot_name,
+                        'checksum': creation_response['checksum']
+                    })
                 return version_response
             self._logger.info('Lex get_bot call failed')
             self._logger.info(ex)
@@ -77,7 +81,6 @@ class LexBotBuilder(LexHelper, object):
         return intents_definition
 
     def _put_intents(self, bot_name, intent_definitions):
-        print('pt intents')
         intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
         intent_versions = []
 
@@ -93,42 +96,6 @@ class LexBotBuilder(LexHelper, object):
             )
 
         return intent_versions
-
-    def _put_slot_types(self, slot_type_definition):
-        """Create/Update slot_types"""
-        slot_type_versions = {}
-        for slot_type in slot_type_definition:
-            name = slot_type['name']
-            lookup_version = '$LATEST'
-            try:
-                get_slot_type_response = self._lex_sdk.get_slot_type(
-                    name=name, version=lookup_version)
-                checksum = get_slot_type_response['checksum']
-            except ClientError as ex:
-                http_status_code = None
-                if 'ResponseMetadata' in ex.response:
-                    response_metadata = ex.response['ResponseMetadata']
-                    if 'HTTPStatusCode' in response_metadata:
-                        http_status_code = response_metadata['HTTPStatusCode']
-                if http_status_code == 404:
-                    creation_response = self._create_lex_resource(
-                        self._lex_sdk.put_slot_type, 'put_slot_type', slot_type)
-                    version_response = self._lex_sdk.create_slot_type_version(
-                        name=name, checksum=creation_response['checksum'])
-                    slot_type_versions[name] = version_response['version']
-                    continue
-                else:
-                    self._logger.info('Lex get_slot_type call failed')
-                    self._logger.info(ex)
-                    raise
-
-            update_response = self._update_lex_resource(
-                self._lex_sdk.put_slot_type, 'put_slot_type', checksum, slot_type)
-            version_response = self._lex_sdk.create_slot_type_version(
-                name=name, checksum=update_response['checksum'])
-            slot_type_versions[name] = version_response['version']
-        return slot_type_versions
-
     def _bot_put_properties(self, bot_name, checksum, resource_properties):
 
         properties = {
@@ -251,6 +218,66 @@ class LexBotBuilder(LexHelper, object):
                             'Lex delete_intent call max retries')
                         raise
 
+    def delete(self, lex_definition):
+        """Delete bot, intents, and slot-types"""
+        delete_failed = False
+        # TODO what about deleting published version(s) of the bot?
+        try:
+            self._delete_bot(lex_definition['bot'])
+        except Exception as ex:
+            delete_failed = True
+
+        try:
+            self._delete_intents(lex_definition['intents'])
+        except Exception as ex:
+            delete_failed = True
+
+        try:
+            self._delete_slot_types(lex_definition['slot_types'])
+        except Exception as ex:
+            delete_failed = True
+
+        if delete_failed:
+            raise Exception(
+                'See logs for details on what resources failed to delete')
+
+        self._logger.info('Successfully deleted bot and associated resources')
+
+    def _put_slot_types(self, slot_type_definition):
+        """Create/Update slot_types"""
+        slot_type_versions = {}
+        for slot_type in slot_type_definition:
+            name = slot_type['name']
+            lookup_version = '$LATEST'
+            try:
+                get_slot_type_response = self._lex_sdk.get_slot_type(
+                    name=name, version=lookup_version)
+                checksum = get_slot_type_response['checksum']
+            except ClientError as ex:
+                http_status_code = None
+                if 'ResponseMetadata' in ex.response:
+                    response_metadata = ex.response['ResponseMetadata']
+                    if 'HTTPStatusCode' in response_metadata:
+                        http_status_code = response_metadata['HTTPStatusCode']
+                if http_status_code == 404:
+                    creation_response = self._create_lex_resource(
+                        self._lex_sdk.put_slot_type, 'put_slot_type', slot_type)
+                    version_response = self._lex_sdk.create_slot_type_version(
+                        name=name, checksum=creation_response['checksum'])
+                    slot_type_versions[name] = version_response['version']
+                    continue
+                else:
+                    self._logger.info('Lex get_slot_type call failed')
+                    self._logger.info(ex)
+                    raise
+
+            update_response = self._update_lex_resource(
+                self._lex_sdk.put_slot_type, 'put_slot_type', checksum, slot_type)
+            version_response = self._lex_sdk.create_slot_type_version(
+                name=name, checksum=update_response['checksum'])
+            slot_type_versions[name] = version_response['version']
+        return slot_type_versions
+
     def _delete_slot_types(self, slot_types_definition):
         '''Delete all slot_type'''
         for slot_type in slot_types_definition:
@@ -280,27 +307,4 @@ class LexBotBuilder(LexHelper, object):
                             'Lex delete_slot_type call max retries')
                         raise
 
-    def delete(self, lex_definition):
-        """Delete bot, intents, and slot-types"""
-        delete_failed = False
-        # TODO what about deleting published version(s) of the bot?
-        try:
-            self._delete_bot(lex_definition['bot'])
-        except Exception as ex:
-            delete_failed = True
 
-        try:
-            self._delete_intents(lex_definition['intents'])
-        except Exception as ex:
-            delete_failed = True
-
-        try:
-            self._delete_slot_types(lex_definition['slot_types'])
-        except Exception as ex:
-            delete_failed = True
-
-        if delete_failed:
-            raise Exception(
-                'See logs for details on what resources failed to delete')
-
-        self._logger.info('Successfully deleted bot and associated resources')
