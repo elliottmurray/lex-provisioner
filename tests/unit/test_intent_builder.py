@@ -62,7 +62,7 @@ def put_intent_request(bot_name, intent_name, plaintext=None):
         'description': "Intent {0} for {1}".format(intent_name, bot_name),
         'slots': [],
 
-        'sampleUtterances': [
+        'sampleUtterances': [ 'a test utterance'
         ],
         'confirmationPrompt': {
             'messages': [

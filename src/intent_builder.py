@@ -136,7 +136,7 @@ class IntentBuilder(LexHelper, object):
             'description': "Intent {0} for {1}".format(intent_name, bot_name),
             'slots': [],
 
-            'sampleUtterances': [
+            'sampleUtterances': [ 'a test utterance'
             ],
            'dialogCodeHook': {
                 'uri': codehook_uri,
