@@ -122,6 +122,17 @@ Next, we run `pytest` against our `tests` folder to run our initial unit tests:
 python -m pytest tests/ -v
 ```
 
+Or 
+
+```bash
+tox
+```
+
+Or to run a single test:
+```bash
+tox -- tests/unit/test_app.py::test_delete_bot_called
+```
+
 **NOTE**: It is recommended to use a Python Virtual environment to separate your application development from  your system Python installation.
 
 # Appendix

@@ -12,13 +12,23 @@ BOT_NAME = 'pythontestLexBot'
 BOT_VERSION = '$LATEST'
 
 @pytest.fixture()
-def cfn_event():
+def cfn_create_event():
     """ Generates Custom CFN create Event"""
+    return cfn_event("Create")
+
+
+@pytest.fixture()
+def cfn_delete_event():
+    """ Generates Custom CFN delete Event"""
+    return cfn_event("Delete")
+
+def cfn_event(event_type):
+    """ Generates Custom CFN Event"""
 
     return {
         "LogicalResourceId": "LexBot",
         "RequestId": "1234abcd-1234-123a-1ab9-123456bce9dc",
-        "RequestType": "Create",
+        "RequestType": event_type,
         "ResourceProperties": {
             "NamePrefix": "pythontest",
             "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
@@ -47,6 +57,7 @@ def cfn_event():
         "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
         "StackId": "arn:aws:cloudformation:us-east-1:773592622512:stack/python-test/db2706d0-2683-11e9-a40a-0a515b01a4a4"
     }
+
 
 
 @pytest.fixture()
@@ -179,11 +190,11 @@ def stub_get_request(stubber):
     stubber.add_response('get_bot', get_bot_response(), get_bot_request())
 
 @mock.patch('put.IntentBuilder')
-def test_create_puts_bot(intent_builder, cfn_event, put_bot_response,
+def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
         mocker):
     """ test_create_puts_bot"""
     lex = setup()
-    bot_props = cfn_event['ResourceProperties']
+    bot_props = cfn_create_event['ResourceProperties']
 
     expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
 
@@ -204,23 +215,22 @@ def test_create_puts_bot(intent_builder, cfn_event, put_bot_response,
         context.aws_request_id = 12345
         context.get_remaining_time_in_millis.return_value = 100000.0
 
-        response = app.create(cfn_event, context, lex_sdk=lex)
+        response = app.create(cfn_create_event, context, lex_sdk=lex)
         assert response['BotName'] == BOT_NAME
         assert response['BotVersion'] == BOT_VERSION
 
         stubber.assert_no_pending_responses()
 
-
 @mock.patch('put.IntentBuilder')
 def test_create_put_intent_called(intent_builder,
-                                  cfn_event,
+                                  cfn_create_event,
                                   get_bot_response,
                                   put_bot_response,
                                   mocker):
     """ create put intent called test """
 
     lex = setup()
-    bot_props = cfn_event['ResourceProperties']
+    bot_props = cfn_create_event['ResourceProperties']
 
     create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
     expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
@@ -238,11 +248,54 @@ def test_create_put_intent_called(intent_builder,
 
         context = mocker.Mock()
 
-        response = app.create(cfn_event, context, lex_sdk=lex)
+        response = app.create(cfn_create_event, context, lex_sdk=lex)
 
         assert intent_builder_instance.put_intent.call_count == 1
-        plaintext = {'confirmation': 'a confirmation'}
-        intent_builder_instance.put_intent.assert_called_with(BOT_NAME, 'greeting','arn:aws:xxx',
-                                                              max_attempts=3, plaintext=plaintext)
+        intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
+                'greeting',
+                'arn:aws:xxx',
+                max_attempts=3,
+                plaintext={'confirmation': 'a confirmation'})
 
+@mock.patch('put.IntentBuilder')
+def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, mocker):
+    """ delete bot called test """
+
+    lex = setup()
+    bot_props = cfn_delete_event['ResourceProperties']
+    delete_intent_response = {'test':'response'}
+
+    delete_response = {'test':'bot response'}
+    with Stubber(lex) as stubber:
+        intent_builder_instance = intent_builder.return_value
+        intent_builder_instance.delete_intents.return_value = delete_intent_response
+
+        stub_get_request(stubber)
+        stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
+
+        context = mocker.Mock()
+
+        response = app.delete(cfn_delete_event, context, lex_sdk=lex)
+
+@mock.patch('put.IntentBuilder')
+def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_response,
+        mocker):
+    lex = setup()
+    bot_props = cfn_delete_event['ResourceProperties']
+    delete_intent_response = {'test':'response'}
+
+    delete_response = {'test':'bot response'}
+    with Stubber(lex) as stubber:
+        intent_builder_instance = intent_builder.return_value
+        intent_builder_instance.delete_intents.return_value = delete_intent_response
+
+        stub_get_request(stubber)
+        stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
+
+        context = mocker.Mock()
+
+        response = app.delete(cfn_delete_event, context, lex_sdk=lex)
+
+        assert intent_builder_instance.delete_intents.call_count == 1
+        intent_builder_instance.delete_intents.assert_called_with(['greeting'])
 

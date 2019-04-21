@@ -310,9 +310,6 @@ def test_delete_intent(lex, aws_lambda):
     intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_intent_deletion(stubber, delete_intent_response, deletet_request)
-        intent_builder.delete_intent(BOT_NAME, INTENT_NAME)
-
-
-
+        intent_builder.delete_intents(BOT_NAME, INTENT_NAME)
 
 

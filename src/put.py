@@ -3,6 +3,7 @@
 """ Provision AWS Lex resources using python SDK
 """
 
+import traceback
 import time
 import boto3
 from botocore.exceptions import ClientError
@@ -68,7 +69,6 @@ class LexBotBuilder(LexHelper, object):
         #     self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
         version_response = self._lex_sdk.create_bot_version(
             name=bot_name, checksum=creation_response['checksum'])
-        print(version_response)
         return version_response
 
 
@@ -80,22 +80,6 @@ class LexBotBuilder(LexHelper, object):
         #             slot['slotTypeVersion'] = slot_types[slot['slotType']]
         return intents_definition
 
-    def _put_intents(self, bot_name, intent_definitions):
-        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
-        intent_versions = []
-
-        for intent_definition in intent_definitions:
-            intent_name = intent_definition.get('Name')
-            codehook = intent_definition.get('Codehook')
-            max_attempts = intent_definition.get('maxAttempts')
-            intent_versions.append(
-              intent_builder.put_intent(bot_name, intent_name, codehook,
-                max_attempts=max_attempts,
-                plaintext=intent_definition.get('Plaintext')
-              )
-            )
-
-        return intent_versions
     def _bot_put_properties(self, bot_name, checksum, resource_properties):
 
         properties = {
@@ -125,8 +109,6 @@ class LexBotBuilder(LexHelper, object):
         }
 
         #properties.update(self._get_intent_versions(resource_properties))
-        print("Props")
-        print(properties)
         return properties
 
  #   def _get_intent_versions(self, resource_properties):
@@ -140,11 +122,9 @@ class LexBotBuilder(LexHelper, object):
     def put(self, bot_name, resource_properties):
         """Create/Update lex-bot resources; bot, intents, slot_types"""
         # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
-
-        intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
+        intents_definition = resource_properties['intents']
+        # intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
         intent_defs = self._put_intents(bot_name, intents_definition)
-        print("defs")
-        print(intent_defs)
 
         checksum = ''
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
@@ -152,16 +132,65 @@ class LexBotBuilder(LexHelper, object):
         bot_properties.update({"intents": intent_defs})
 
         bot_response = self._put_bot(bot_name, bot_properties)
-        print("returned from _put_bot")
-        print(bot_response)
         return bot_response
 
-    def _delete_bot(self, bot_definition):
+    def delete(self, bot_name, resource_properties):
+        """Delete bot, intents, and slot-types"""
+        delete_failed = False
+        # TODO what about deleting published version(s) of the bot?
+        try:
+            self._delete_bot(bot_name)
+        except Exception as ex:
+            delete_failed = True
+
+        try:
+            intents_definition = resource_properties['intents']
+            self._delete_intents(bot_name, intents_definition)
+        except Exception as ex:
+            traceback.print_exc(ex)
+            delete_failed = True
+
+   #     try:
+   #         self._delete_slot_types(lex_definition['slot_types'])
+   #     except Exception as ex:
+   #         delete_failed = True
+
+        if delete_failed:
+            raise Exception(
+                'See logs for details on what resources failed to delete')
+
+        self._logger.info('Successfully deleted bot and associated resources')
+
+    def _put_intents(self, bot_name, intent_definitions):
+        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
+        intent_versions = []
+
+        for intent_definition in intent_definitions:
+            intent_name = intent_definition.get('Name')
+            codehook = intent_definition.get('Codehook')
+            max_attempts = intent_definition.get('maxAttempts')
+            intent_versions.append(
+              intent_builder.put_intent(bot_name, intent_name, codehook,
+                max_attempts=max_attempts,
+                plaintext=intent_definition.get('Plaintext')
+              )
+            )
+
+        return intent_versions
+
+    def _delete_intents(self, bot_name, intent_definitions):
+        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
+        print(intent_definitions[0])
+        intent_names = [intent.get('Name') for intent in intent_definitions]
+        intent_builder.delete_intents(intent_names)
+
+
+    def _delete_bot(self, bot_name):
         '''Delete bot'''
         # todo fix this
-        version = ''
-        bot_name = bot_definition['name']
+ 
         self._logger.info('deleting bot: %s', bot_name)
+        version = '$LATEST'
         count = self.MAX_DELETE_TRIES
         while True:
             try:
@@ -189,59 +218,6 @@ class LexBotBuilder(LexHelper, object):
                 else:
                     self._logger.error('Lex delete_bot call max retries')
                     raise
-
-    def _delete_intents(self, intents_definition):
-        '''Delete all intent'''
-        for intent in intents_definition:
-            name = intent['name']
-            self._logger.info('deleting intent: %s', name)
-            count = self.MAX_DELETE_TRIES
-            while True:
-                try:
-                    self._lex_sdk.delete_intent(name=name)
-                    self._logger.info('successfully deleted intent: %s', name)
-                    break
-                except Exception as ex:
-                    self._logger.warning('Lex delete_intent call failed')
-                    self._logger.warning(ex)
-                    count -= 1
-                    if count:
-                        self._logger.warning(
-                            'Lex delete_intent retry: %s. Sleeping for %s seconds',
-                            self.MAX_DELETE_TRIES - count,
-                            self.RETRY_SLEEP
-                        )
-                        time.sleep(self.RETRY_SLEEP)
-                        continue
-                    else:
-                        self._logger.error(
-                            'Lex delete_intent call max retries')
-                        raise
-
-    def delete(self, lex_definition):
-        """Delete bot, intents, and slot-types"""
-        delete_failed = False
-        # TODO what about deleting published version(s) of the bot?
-        try:
-            self._delete_bot(lex_definition['bot'])
-        except Exception as ex:
-            delete_failed = True
-
-        try:
-            self._delete_intents(lex_definition['intents'])
-        except Exception as ex:
-            delete_failed = True
-
-        try:
-            self._delete_slot_types(lex_definition['slot_types'])
-        except Exception as ex:
-            delete_failed = True
-
-        if delete_failed:
-            raise Exception(
-                'See logs for details on what resources failed to delete')
-
-        self._logger.info('Successfully deleted bot and associated resources')
 
     def _put_slot_types(self, slot_type_definition):
         """Create/Update slot_types"""

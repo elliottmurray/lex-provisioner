@@ -150,20 +150,26 @@ def update(event, context):
     return response_data
 
 
-def delete(event, context):
+def delete(event, context, lex_sdk=None):
     """
     Handle Delete events
 
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    try:
-      lex_definition, lex_bot_builder = _lex_builder_instance(event, context)
-      lex_bot_builder.delete(lex_definition)
-      return
-    except FileNotFoundError as ex:
-      logger.error("Could not find lex definition file so just exiting.")
-      return
+    lex_bot_builder = LexBotBuilder(logger, lex_sdk)
+    resource_properties = event.get('ResourceProperties')
+    name_prefix = resource_properties.get('NamePrefix')
+    bot_name = name_prefix + event['LogicalResourceId']
+    bot_put_response = lex_bot_builder.delete(bot_name, resource_properties)
+
+   # try:
+   #   lex_definition, lex_bot_builder = _lex_builder_instance(event, context)
+   #   lex_bot_builder.delete(lex_definition)
+   #   return
+   # except FileNotFoundError as ex:
+   #   logger.error("Could not find lex definition file so just exiting.")
+   #   return
 
 def lambda_handler(event, context):
     """
