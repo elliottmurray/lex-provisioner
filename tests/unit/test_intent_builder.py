@@ -195,6 +195,10 @@ def stub_intent_creation(stubber, put_intent_response, put_request):
                                                    'version': '1'},
                          {'checksum': 'string', 'name': 'greeting'})
 
+def stub_intent_deletion(stubber, delete_intent_response, delete_request):
+
+    stubber.add_response(
+        'delete_intent', delete_intent_response, delete_request)
 
 def test_create_intent_missing_rejection_plaintext(put_intent_response, mocker, lex, aws_lambda):
     codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
@@ -297,6 +301,18 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
+
+
+
+def test_delete_intent(lex, aws_lambda):
+    delete_intent_response, deletet_request = {}, {}
+
+    intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_intent_deletion(stubber, delete_intent_response, deletet_request)
+        intent_builder.delete_intent(BOT_NAME, INTENT_NAME)
+
+
 
 
 
