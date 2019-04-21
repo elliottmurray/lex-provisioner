@@ -86,8 +86,10 @@ class LexBotBuilder(LexHelper, object):
             max_attempts = intent_definition.get('maxAttempts')
             intent_versions.append(
               intent_builder.put_intent(bot_name, intent_name, codehook,
-              max_attempts=max_attempts,
-              plaintext=intent_definition.get('Plaintext')))
+                max_attempts=max_attempts,
+                plaintext=intent_definition.get('Plaintext')
+              )
+            )
 
         return intent_versions
 
