@@ -8,6 +8,8 @@ from lex_helper import LexHelper
 from utils import ValidationError
 
 class IntentBuilder(LexHelper, object):
+
+    RETRY_SLEEP = 5
     def __init__(self, logger, lex_sdk=None, lambda_sdk=None):
         self._logger = logger
         if(lex_sdk == None):

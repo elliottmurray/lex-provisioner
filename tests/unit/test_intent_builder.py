@@ -15,6 +15,7 @@ CODEHOOKNAME = 'greetingCodehook'
 BOT_NAME = 'test bot'
 
 INTENT_NAME = 'greeting'
+INTENT_NAME_2 = 'farewell'
 
 def put_request_followUp(plaintext):
     return  {
@@ -305,11 +306,13 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
 
 
 def test_delete_intent(lex, aws_lambda):
-    delete_intent_response, deletet_request = {}, {}
+    delete_intent_response, delete_request_1 = {}, {'name': INTENT_NAME}
+    delete_intent_response, delete_request_2 = {}, {'name': INTENT_NAME_2}
 
     intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
-        stub_intent_deletion(stubber, delete_intent_response, deletet_request)
-        intent_builder.delete_intents(BOT_NAME, INTENT_NAME)
+        stub_intent_deletion(stubber, delete_intent_response, delete_request_1)
+        stub_intent_deletion(stubber, delete_intent_response, delete_request_2)
+        intent_builder.delete_intents(INTENT_NAME, INTENT_NAME_2)
 
 
