@@ -142,6 +142,7 @@ class LexBotBuilder(LexHelper, object):
         try:
             self._delete_bot(bot_name)
         except Exception as ex:
+            traceback.print_exc(ex)
             delete_failed = True
 
         try:

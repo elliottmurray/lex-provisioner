@@ -43,7 +43,7 @@ class IntentBuilder(LexHelper, object):
         return { "intentName": version_response['name'],
                 "intentVersion": version_response['version']}
 
-    def delete_intents(self, *intents_definition, max_attempts=2):
+    def delete_intents(self, intents_definition, max_attempts=2):
         '''Delete all intents in our tuple'''
 
         self._logger.info('delete intents')

@@ -313,6 +313,6 @@ def test_delete_intent(lex, aws_lambda):
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_intent_deletion(stubber, delete_intent_response, delete_request_1)
         stub_intent_deletion(stubber, delete_intent_response, delete_request_2)
-        intent_builder.delete_intents(INTENT_NAME, INTENT_NAME_2)
+        intent_builder.delete_intents([INTENT_NAME, INTENT_NAME_2])
 
 
