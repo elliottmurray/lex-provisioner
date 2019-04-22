@@ -1,0 +1,33 @@
+{
+  "RequestType": "Delete",
+  "RequestId": "67eb0cbc-e751-4356-a86d-22bb54a63f5c",
+  "ResponseURL": "http://localhost:8888",
+  "ResourceType": "Custom::LexBot",
+  "LogicalResourceId": "LexBot",
+  "StackId": "arn:aws:cloudformation:us-east-2:namespace:stack/stack-name/guid",
+  "ResourceProperties": {
+    "NamePrefix": "pythontest",
+    "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-EHOW8SMAB7FW",
+    "loglevel": "info",
+    "description": "friendly AI chatbot overlord",
+    "locale": "en-US",
+    "clarification": {
+        "message": "clarification statement"
+    },
+    "abortStatement": {
+        "message": "abort statement"
+    },
+    "intents":[
+        {
+          "Name": "elliott_helloworld",
+          "Codehook": "arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld",
+          "maxAttempts": 3,
+          "Plaintext": {
+              "confirmation": "a confirmation",
+              "rejection": "a rejection",
+              "conclusion": "a conclusion"
+          }
+        }
+    ]
+  }
+}

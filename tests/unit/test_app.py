@@ -49,6 +49,14 @@ def cfn_event(event_type):
                     "Plaintext": {
                         "confirmation": 'a confirmation'
                     }
+                },
+                {
+                    "Name": 'farewell',
+                    "Codehook": "arn:aws:xxx",
+                    "maxAttempts": 3,
+                    "Plaintext": {
+                        "confirmation": 'a farewell confirmation'
+                    }
                 }
             ],
             },
@@ -158,7 +166,10 @@ def put_bot_request(bot_name, bot_props, put_bot_response):
         'description': put_bot_response['description'],
         'idleSessionTTLInSeconds': ANY,
         'name': bot_name,
-        'intents': [{'intentName': 'greeting', 'intentVersion': '$LATEST'}],
+        'intents': [
+            {'intentName': 'greeting', 'intentVersion': '$LATEST'},
+            {'intentName': 'farewell', 'intentVersion': '$LATEST'}
+        ],
         'locale': put_bot_response['locale'],
         'processBehavior': 'BUILD'
     }
@@ -201,9 +212,11 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
     create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
 
     with Stubber(lex) as stubber:
-        put_intent_response = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
+        put_intent_response_1 = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
+        put_intent_response_2 = {'intentName': 'farewell', 'intentVersion': '$LATEST'}
+
         intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.return_value = put_intent_response
+        intent_builder_instance.put_intent.side_effect = [put_intent_response_1, put_intent_response_2]
         stub_get_request(stubber)
 
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
@@ -236,9 +249,11 @@ def test_create_put_intent_called(intent_builder,
     expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
 
     with Stubber(lex) as stubber:
-        put_intent_response = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
+        put_intent_response_1 = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
+        put_intent_response_2 = {'intentName': 'farewell', 'intentVersion': '$LATEST'}
+
         intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.return_value = put_intent_response
+        intent_builder_instance.put_intent.side_effect = [put_intent_response_1, put_intent_response_2]
 
         stub_get_request(stubber)
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
@@ -250,12 +265,12 @@ def test_create_put_intent_called(intent_builder,
 
         response = app.create(cfn_create_event, context, lex_sdk=lex)
 
-        assert intent_builder_instance.put_intent.call_count == 1
+        assert intent_builder_instance.put_intent.call_count == 2 
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-                'greeting',
+                'farewell',
                 'arn:aws:xxx',
                 max_attempts=3,
-                plaintext={'confirmation': 'a confirmation'})
+                plaintext={'confirmation': 'a farewell confirmation'})
 
 @mock.patch('put.IntentBuilder')
 def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, mocker):
@@ -297,5 +312,5 @@ def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_res
         response = app.delete(cfn_delete_event, context, lex_sdk=lex)
 
         assert intent_builder_instance.delete_intents.call_count == 1
-        intent_builder_instance.delete_intents.assert_called_with(['greeting'])
+        intent_builder_instance.delete_intents.assert_called_with(['greeting','farewell'])
 

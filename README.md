@@ -40,11 +40,14 @@ By default, this command writes built artifacts to `.aws-sam/build` folder.
 
 ### Local development
 
-**Invoking function with create event**
+**Invoking function with create and delete  event**
 
 ```bash
-sam local invoke -e test.json
-sam local invoke -e test.json -n test-env.json # override env vars option
+sam local invoke -e fixtures/testi-create.json
+sam local invoke -e fixtures/test-create.json -n fixtures/test-env.json # override env vars option
+
+sam local invoke -e fixtures/test-delete.json -n fixtures/test-env.json # delete option 
+
 ```
 
 test.json is an example event. test-env.json is a sample json file to override
