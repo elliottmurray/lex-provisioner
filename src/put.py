@@ -190,37 +190,19 @@ class LexBotBuilder(LexHelper, object):
 
     def _delete_bot(self, bot_name):
         '''Delete bot'''
-        # todo fix this
- 
         self._logger.info('deleting bot: %s', bot_name)
         version = '$LATEST'
-        count = self.MAX_DELETE_TRIES
         while True:
             try:
                 self._lex_sdk.get_bot(name=bot_name, versionOrAlias=version)
+                self._delete_lex_resource(self._lex_sdk.delete_bot, 'delete_bot',
+                        name=bot_name)
 
-                self._lex_sdk.delete_bot(name=bot_name)
                 self._logger.info('deleted bot: %s', bot_name)
                 break
             except NotFoundException as ex:
                 self._logger.warning('Lex can not call delete_bot on deleted bot %s.',
                                      bot_name)
-
-            except Exception as ex:
-                self._logger.warning('Lex delete_bot call failed')
-                self._logger.warning(ex)
-                count -= 1
-                if count:
-                    self._logger.warning(
-                        'Lex delete_bot retry: %s. Sleeping for %s seconds',
-                        self.MAX_DELETE_TRIES - count,
-                        self.RETRY_SLEEP
-                    )
-                    time.sleep(self.RETRY_SLEEP)
-                    continue
-                else:
-                    self._logger.error('Lex delete_bot call max retries')
-                    raise
 
     def _put_slot_types(self, slot_type_definition):
         """Create/Update slot_types"""

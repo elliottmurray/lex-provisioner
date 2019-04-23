@@ -1,4 +1,5 @@
 import boto3
+import time
 
 class LexHelper(object):
 
@@ -31,6 +32,36 @@ class LexHelper(object):
                 'Failed to update lex resource using %s', func_name)
             self._logger.error(ex)
             raise
+
+    MAX_DELETE_TRIES = 5
+    RETRY_SLEEP = 5
+
+    def _delete_lex_resource(self, func, func_name, **properties):
+        '''Delete lex resource'''
+        self._logger.info('%s : %s', func_name, properties)
+        count = self.MAX_DELETE_TRIES
+        while True:
+            try:
+                func(**properties)
+                self._logger.info('finished %s: %s', func_name, properties)
+                break
+            except Exception as ex:
+                self._logger.warning('Lex %s call failed', func_name)
+                self._logger.warning(ex)
+                count -= 1
+                if count:
+                    self._logger.warning(
+                        'Lex %s retry: %s. Sleeping for %s seconds',
+                        func_name,
+                        self.MAX_DELETE_TRIES - count,
+                        self.RETRY_SLEEP
+                    )
+                    time.sleep(self.RETRY_SLEEP)
+                    continue
+                else:
+                    self._logger.error('Lex %s call max retries', func_name)
+                    raise
+
 
     def _get_intent_arn(self, intent_name, aws_region, aws_account_id):
         return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \

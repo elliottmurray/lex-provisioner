@@ -46,31 +46,10 @@ class IntentBuilder(LexHelper, object):
     def delete_intents(self, intents_definition, max_attempts=2):
         '''Delete all intents in our tuple'''
 
-        self._logger.info('delete intents')
+        self._logger.info('delete all intents')
         for intent in intents_definition:
-            self._logger.info('deleting intent: %s', intent)
-            count = max_attempts
-            while True:
-                try:
-                    self._lex_sdk.delete_intent(name=intent)
-                    self._logger.info('successfully deleted intent: %s', intent)
-                    break
-                except Exception as ex:
-                    self._logger.warning('Lex delete_intent call failed')
-                    self._logger.warning(ex)
-                    count -= 1
-                    if count:
-                        self._logger.warning(
-                            'Lex delete_intent retry: %s. Sleeping for %s seconds',
-                            max_attempts - count,
-                            self.RETRY_SLEEP
-                        )
-                        time.sleep(self.RETRY_SLEEP)
-                        continue
-                    else:
-                        self._logger.error(
-                            'Lex delete_intent call max retries')
-                        raise
+            self._delete_lex_resource(self._lex_sdk.delete_intent, 'delete_intent',
+                    name=intent)
 
     def _create_message(self, messageKey, content, max_attempts=None):
         message = {
