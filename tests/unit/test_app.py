@@ -147,11 +147,10 @@ def put_bot_response():
         "version": "$LATEST"
     }
 
-def put_bot_request(bot_name, bot_props, put_bot_response):
+def put_bot_request(bot_name, bot_props, put_bot_response, has_checksum=False):
     """ put bot request """
 
-        #'checksum': ANY,
-    return {
+    put_request = {
         'abortStatement': ANY,
         'childDirected': False,
         'clarificationPrompt': {
@@ -173,6 +172,12 @@ def put_bot_request(bot_name, bot_props, put_bot_response):
         'locale': put_bot_response['locale'],
         'processBehavior': 'BUILD'
     }
+
+    if(has_checksum):
+      put_request.update({
+                           'checksum': ANY,
+                        })
+    return put_request
 
 def get_bot_request():
     """ get bot request """
@@ -196,9 +201,25 @@ def setup():
     """ setup function """
     return  botocore.session.get_session().create_client('lex-models')
 
+def stub_not_found_get_request(stubber):
+    """stub not found get request"""
+    stubber.add_client_error('get_bot', http_status_code=404)
+    # throw error here
+
 def stub_get_request(stubber):
     """stub get request"""
     stubber.add_response('get_bot', get_bot_response(), get_bot_request())
+
+def put_intent_responses():
+    put_intent_response_1 = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
+    put_intent_response_2 = {'intentName': 'farewell', 'intentVersion': '$LATEST'}
+
+    return [put_intent_response_1, put_intent_response_2]
+
+def stub_put_intent(intent_builder):
+        intent_builder_instance = intent_builder.return_value
+        intent_builder_instance.put_intent.side_effect = put_intent_responses()
+        return intent_builder_instance
 
 @mock.patch('put.IntentBuilder')
 def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
@@ -212,11 +233,37 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
     create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
 
     with Stubber(lex) as stubber:
-        put_intent_response_1 = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
-        put_intent_response_2 = {'intentName': 'farewell', 'intentVersion': '$LATEST'}
+        intent_builder_instance = stub_put_intent(intent_builder)
 
-        intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.side_effect = [put_intent_response_1, put_intent_response_2]
+        stub_not_found_get_request(stubber)
+
+        stubber.add_response('put_bot', put_bot_response, expected_put_params)
+
+        stubber.add_response('create_bot_version',
+                             create_bot_version_response, create_bot_version_params)
+
+        context = mocker.Mock()
+        context.aws_request_id = 12345
+        context.get_remaining_time_in_millis.return_value = 100000.0
+
+        response = app.create(cfn_create_event, context, lex_sdk=lex)
+        assert response['BotName'] == BOT_NAME
+        assert response['BotVersion'] == BOT_VERSION
+
+        stubber.assert_no_pending_responses()
+
+@mock.patch('put.IntentBuilder')
+def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, mocker):
+    """ test_create_puts_bot"""
+    lex = setup()
+    bot_props = cfn_create_event['ResourceProperties']
+    expected_put_params = put_bot_request(BOT_NAME, bot_props,
+                                          put_bot_response, has_checksum=True)
+
+    create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
+
+    with Stubber(lex) as stubber:
+        intent_builder_instance = stub_put_intent(intent_builder)
         stub_get_request(stubber)
 
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
@@ -249,13 +296,9 @@ def test_create_put_intent_called(intent_builder,
     expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
 
     with Stubber(lex) as stubber:
-        put_intent_response_1 = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
-        put_intent_response_2 = {'intentName': 'farewell', 'intentVersion': '$LATEST'}
+        intent_builder_instance = stub_put_intent(intent_builder)
 
-        intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.side_effect = [put_intent_response_1, put_intent_response_2]
-
-        stub_get_request(stubber)
+        stub_not_found_get_request(stubber)
         stubber.add_response('put_bot', put_bot_response, expected_put_params)
 
         stubber.add_response('create_bot_version',
@@ -263,9 +306,9 @@ def test_create_put_intent_called(intent_builder,
 
         context = mocker.Mock()
 
-        response = app.create(cfn_create_event, context, lex_sdk=lex)
+        app.create(cfn_create_event, context, lex_sdk=lex)
 
-        assert intent_builder_instance.put_intent.call_count == 2 
+        assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
                 'farewell',
                 'arn:aws:xxx',

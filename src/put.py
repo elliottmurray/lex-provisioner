@@ -30,46 +30,57 @@ class LexBotBuilder(LexHelper, object):
             intent['intentVersion'] = intents[intent['intentName']]
         return bot_definition
 
-    def _put_bot(self, bot_name, bot_properties):
-        """Create/Update bot"""
-        locale = 'en-US'
+    def _bot_exists(self, name, versionOrAlias='$LATEST'):
         try:
-            get_bot_response = self._lex_sdk.get_bot(name=bot_name, versionOrAlias='$LATEST')
+            get_bot_response = self._lex_sdk.get_bot(name=name,
+                                                     versionOrAlias=versionOrAlias)
             self._logger.info(get_bot_response)
             checksum = get_bot_response['checksum']
 
+            return True, checksum
+
         except ClientError as ex:
-            self._logger.info("EXCEPTION")
+            self._logger.info("EXCEPTION in get bot")
             http_status_code = None
             if 'ResponseMetadata' in ex.response:
                 response_metadata = ex.response['ResponseMetadata']
                 if 'HTTPStatusCode' in response_metadata:
                     http_status_code = response_metadata['HTTPStatusCode']
             if http_status_code == 404:
-                self._logger.info(bot_properties)
+                return False, None
 
-                creation_response = self._create_lex_resource(
-                    self._lex_sdk.put_bot, 'put_bot', bot_properties)
-
-                version_response = self._create_lex_resource(
-                    self._lex_sdk.create_bot_version, 'create_bot_version',
-                    {
-                        'name': bot_name,
-                        'checksum': creation_response['checksum']
-                    })
-                return version_response
             self._logger.info('Lex get_bot call failed')
             self._logger.info(ex)
             raise
 
-        creation_response = self._create_lex_resource(
-            self._lex_sdk.put_bot, 'put_bot', bot_properties)
 
-        # update_response = self._update_lex_resource(
-        #     self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
-        version_response = self._lex_sdk.create_bot_version(
-            name=bot_name, checksum=creation_response['checksum'])
-        return version_response
+    def _put_bot(self, bot_name, bot_properties):
+        """Create/Update bot"""
+        locale = 'en-US'
+
+        bot_exists, checksum = self._bot_exists(bot_name)
+
+        if(bot_exists):
+            creation_response = self._update_lex_resource(
+                self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
+
+            version_response = self._lex_sdk.create_bot_version(
+                name=bot_name, checksum=creation_response['checksum'])
+
+            return version_response
+        else:
+            self._logger.info(bot_properties)
+
+            creation_response = self._create_lex_resource(
+                self._lex_sdk.put_bot, 'put_bot', bot_properties)
+
+            version_response = self._create_lex_resource(
+                self._lex_sdk.create_bot_version, 'create_bot_version',
+                {
+                    'name': bot_name,
+                    'checksum': creation_response['checksum']
+                })
+            return version_response
 
 
     def _replace_slot_type_version(self, intents_definition, slot_types):
