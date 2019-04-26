@@ -22,6 +22,31 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
+    def _intent_exists(self, name, versionOrAlias='$LATEST'):
+      try:
+          get_response = self._lex_sdk.get_intent(name=name,
+                                                   version=versionOrAlias)
+          self._logger.info(get_response)
+          print("!!!!!!!!!!!")
+          print(get_response)
+          checksum = get_response['checksum']
+
+          return True, checksum
+
+      except ClientError as ex:
+          self._logger.info("EXCEPTION in get intent")
+          http_status_code = None
+          if 'ResponseMetadata' in ex.response:
+              response_metadata = ex.response['ResponseMetadata']
+              if 'HTTPStatusCode' in response_metadata:
+                  http_status_code = response_metadata['HTTPStatusCode']
+          if http_status_code == 404:
+              return False, None
+
+          self._logger.info('Lex get_intent call failed')
+          self._logger.info(ex)
+          raise
+
     def put_intent(self, bot_name, intent_name, codehook_uri, max_attempts=2, plaintext=None):
         """Create intent and configure any required lambda permissions
 
@@ -32,12 +57,23 @@ class IntentBuilder(LexHelper, object):
 
         self._add_permission_to_lex_to_codehook(codehook_uri, intent_name)
         # TODO if the intent does not need to invoke a lambda, create it
-        new_intent = self._create_lex_resource(
-            self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                intent_name, codehook_uri, max_attempts, plaintext=plaintext)
-        )
-        version_response = self._lex_sdk.create_intent_version(name=intent_name,
-                                                               checksum=new_intent['checksum'])
+        exists, checksum = self._intent_exists(intent_name)
+        if(exists):
+            new_intent = self._update_lex_resource(
+                self._lex_sdk.put_intent, 'put_intent', checksum, self.put_intent_request(bot_name,
+                    intent_name, codehook_uri, max_attempts, plaintext=plaintext)
+            )
+            version_response = self._lex_sdk.create_intent_version(name=intent_name,
+                                                                   checksum=new_intent['checksum'])
+
+            return version_response
+        else:
+            new_intent = self._create_lex_resource(
+                self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
+                    intent_name, codehook_uri, max_attempts, plaintext=plaintext)
+            )
+            version_response = self._lex_sdk.create_intent_version(name=intent_name,
+                                                                   checksum=new_intent['checksum'])
 
         self._logger.info('Created new intent: %s', version_response)
         return { "intentName": version_response['name'],

@@ -204,7 +204,6 @@ def setup():
 def stub_not_found_get_request(stubber):
     """stub not found get request"""
     stubber.add_client_error('get_bot', http_status_code=404)
-    # throw error here
 
 def stub_get_request(stubber):
     """stub get request"""

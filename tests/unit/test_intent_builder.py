@@ -176,7 +176,7 @@ def put_intent_response():
         },
         'parentIntentSignature': 'string',
         'version': '1',
-        'checksum': 'string'
+        'checksum': 'chksum'
     }
 
 def stub_lambda_request(lambda_stubber, codehook_uri):
@@ -189,12 +189,20 @@ def stub_lambda_request(lambda_stubber, codehook_uri):
     }
     lambda_stubber.add_response('add_permission', {}, lambda_request)
 
+def stub_intent_get(stubber, intent_name):
+   stubber.add_response(
+     'get_intent', {'checksum': 'chksum'}, {'name':intent_name, 'version':
+                                         ANY})
+def stub_not_found_get_request(stubber):
+    """stub not found get request"""
+    stubber.add_client_error('get_intent', http_status_code=404)
+
 def stub_intent_creation(stubber, put_intent_response, put_request):
     stubber.add_response(
         'put_intent', put_intent_response, put_request)
     stubber.add_response('create_intent_version', {'name': INTENT_NAME,
                                                    'version': '1'},
-                         {'checksum': 'string', 'name': 'greeting'})
+                         {'checksum': 'chksum', 'name': 'greeting'})
 
 def stub_intent_deletion(stubber, delete_intent_response, delete_request):
 
@@ -231,10 +239,42 @@ def test_create_intent_plaintext(put_intent_response, mocker,
             'followUpRejection':'failed follow on',
             'conclusion': 'concluded'
         }
+        stub_not_found_get_request(stubber)
+
         put_request = put_intent_request(BOT_NAME,
                                           INTENT_NAME, plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
         put_request.update(put_request_conclusion(plaintext))
+
+        stub_intent_creation(stubber, put_intent_response, put_request)
+
+        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                max_attempts=3, plaintext=plaintext)
+
+        stubber.assert_no_pending_responses()
+        lambda_stubber.assert_no_pending_responses()
+
+def test_update_intent_plaintext(put_intent_response, mocker,
+        lex, aws_lambda):
+    codehook_uri = 'arn:aws:lambda:{0}:{1}:function:{2}Codehook'.format(aws_region, aws_account_id, INTENT_NAME)
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
+
+        intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
+        plaintext = {
+            "confirmation": 'some confirmation message',
+            'rejection': 'rejection message',
+            'followUpPrompt':'follow on',
+            'followUpRejection':'failed follow on',
+            'conclusion': 'concluded'
+        }
+        put_request = put_intent_request(BOT_NAME,
+                                          INTENT_NAME, plaintext=plaintext)
+        put_request.update(put_request_followUp(plaintext))
+        put_request.update(put_request_conclusion(plaintext))
+        put_request.update({'checksum': 'chksum'})
+        stub_intent_get(stubber, INTENT_NAME)
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
@@ -260,6 +300,8 @@ def test_create_intent_response(put_intent_response, mocker,
             'followUpRejection':'failed follow on',
             'conclusion': 'concluded'
         }
+
+        stub_not_found_get_request(stubber)
         put_request = put_intent_request(BOT_NAME,
                 INTENT_NAME, plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
@@ -291,6 +333,7 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
             'conclusion': 'the conclusion'
         }
 
+        stub_not_found_get_request(stubber)
         put_request = put_intent_request(BOT_NAME,
                 INTENT_NAME,plaintext=plaintext)
         put_request.update(put_request_conclusion(plaintext))
