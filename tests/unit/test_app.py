@@ -335,6 +335,23 @@ def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, m
         response = app.delete(cfn_delete_event, context, lex_sdk=lex)
 
 @mock.patch('put.IntentBuilder')
+def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_response, mocker):
+    """ delete bot does not fail test """
+    lex = setup()
+    bot_props = cfn_delete_event['ResourceProperties']
+    delete_intent_response = {'test':'response'}
+
+    with Stubber(lex) as stubber:
+        intent_builder_instance = intent_builder.return_value
+        intent_builder_instance.delete_intents.return_value = delete_intent_response
+
+        stub_not_found_get_request(stubber)
+        context = mocker.Mock()
+
+        response = app.delete(cfn_delete_event, context, lex_sdk=lex)
+
+
+@mock.patch('put.IntentBuilder')
 def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_response,
         mocker):
     lex = setup()

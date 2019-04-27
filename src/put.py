@@ -41,7 +41,6 @@ class LexBotBuilder(LexHelper, object):
             return True, checksum
 
         except ClientError as ex:
-            self._logger.info("EXCEPTION in get bot")
             http_status_code = None
             if 'ResponseMetadata' in ex.response:
                 response_metadata = ex.response['ResponseMetadata']
@@ -50,9 +49,9 @@ class LexBotBuilder(LexHelper, object):
             if http_status_code == 404:
                 return False, None
 
-            self._logger.info('Lex get_bot call failed')
-            self._logger.info(ex)
-            raise
+            self._logger.error('Lex get_bot call failed')
+            self._logger.error(ex)
+            raise ex
 
 
     def _put_bot(self, bot_name, bot_properties):
@@ -204,13 +203,18 @@ class LexBotBuilder(LexHelper, object):
         version = '$LATEST'
         while True:
             try:
-                self._lex_sdk.get_bot(name=bot_name, versionOrAlias=version)
-                self._delete_lex_resource(self._lex_sdk.delete_bot, 'delete_bot',
-                        name=bot_name)
 
-                self._logger.info('deleted bot: %s', bot_name)
-                break
-            except NotFoundException as ex:
+                bot_exists, _ = self._bot_exists(bot_name)
+                if(bot_exists):
+                    self._delete_lex_resource(self._lex_sdk.delete_bot, 'delete_bot',
+                            name=bot_name)
+
+                    self._logger.info('deleted bot: %s', bot_name)
+                    break
+                else:
+                    break
+
+            except ClientError as ex:
                 self._logger.warning('Lex can not call delete_bot on deleted bot %s.',
                                      bot_name)
 
