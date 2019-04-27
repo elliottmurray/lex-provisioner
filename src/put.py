@@ -15,6 +15,7 @@ class LexBotBuilder(LexHelper, object):
 
     MAX_DELETE_TRIES = 5
     RETRY_SLEEP = 5
+    LOCALE = 'en-US'
 
     """Create/Update different elements that make up a Lex bot"""
 
@@ -56,7 +57,6 @@ class LexBotBuilder(LexHelper, object):
 
     def _put_bot(self, bot_name, bot_properties):
         """Create/Update bot"""
-        locale = 'en-US'
 
         bot_exists, checksum = self._bot_exists(bot_name)
 
@@ -136,7 +136,6 @@ class LexBotBuilder(LexHelper, object):
         intents_definition = resource_properties['intents']
         # intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
         intent_defs = self._put_intents(bot_name, intents_definition)
-        print(intent_defs)
 
         checksum = ''
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)

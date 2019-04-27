@@ -27,8 +27,6 @@ class IntentBuilder(LexHelper, object):
           get_response = self._lex_sdk.get_intent(name=name,
                                                    version=versionOrAlias)
           self._logger.info(get_response)
-          print("!!!!!!!!!!!")
-          print(get_response)
           checksum = get_response['checksum']
 
           return True, checksum
@@ -66,7 +64,6 @@ class IntentBuilder(LexHelper, object):
             version_response = self._lex_sdk.create_intent_version(name=intent_name,
                                                                    checksum=new_intent['checksum'])
 
-            return version_response
         else:
             new_intent = self._create_lex_resource(
                 self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,

@@ -278,11 +278,15 @@ def test_update_intent_plaintext(put_intent_response, mocker,
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
+        response = intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 max_attempts=3, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
+
+
+        assert response['intentName'] == 'greeting'
+        assert response['intentVersion'] == '1'
 
 def test_create_intent_response(put_intent_response, mocker,
         lex, aws_lambda):

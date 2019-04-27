@@ -25,7 +25,7 @@ class LexHelper(object):
         try:
             response = func(checksum=checksum, **properties)
             self._logger.info(
-                'Created lex resource using %s, response: %s', func_name, response)
+                'Updated lex resource using %s, response: %s', func_name, response)
             return response
         except Exception as ex:
             self._logger.error(
