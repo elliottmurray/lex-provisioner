@@ -49,14 +49,40 @@ class LexHelper(object):
                 self._logger.info('finished %s: %s', func_name, properties)
                 break
             except ClientError as ex:
-                if ex.response['Error']['Code'] == 'NotFoundException':
-
-                    self._logger.info('Lex %s call failed because resource' + \
-                            ' not exist', func_name)
+                if self._not_found(ex, func_name):
                     break
-                self._logger.warning('Lex %s call failed', func_name)
-                traceback.print_exc()
+                if self._try_again(count, func_name):
+                    continue
+                else:
+                    break
+            self._logger.warning('Lex %s call failed', func_name)
+            traceback.print_exc()
 
     def _get_intent_arn(self, intent_name, aws_region, aws_account_id):
         return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
             + ':intent:' + intent_name + ':*'
+
+    def _not_found(self, ex, func_name):
+        if ex.response['Error']['Code'] == 'NotFoundException':
+            self._logger.info('Lex %s call failed because resource' + \
+                    ' not exist', func_name)
+            return True
+        return False
+
+    def _try_again(self, count, func_name):
+        count -= 1
+        if count:
+            self._logger.warning(
+                'Lex %s retry: %s. Sleeping for %s seconds',
+                func_name,
+                self.MAX_DELETE_TRIES - count,
+                self.RETRY_SLEEP
+            )
+            time.sleep(self.RETRY_SLEEP)
+            return True
+        else:
+            self._logger.error(
+                'Lex delete_slot_type call max retries')
+            return False
+
+
