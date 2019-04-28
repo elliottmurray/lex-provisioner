@@ -134,7 +134,7 @@ class LexBotBuilder(LexHelper, object):
         # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
         intents_definition = resource_properties['intents']
         # intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
-        intent_defs = self._put_intents(bot_name, intents_definition)
+        intent_defs, intent_utterances = self._put_intents(bot_name, intents_definition)
 
         checksum = ''
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
@@ -175,6 +175,7 @@ class LexBotBuilder(LexHelper, object):
     def _put_intents(self, bot_name, intent_definitions):
         intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
         intent_versions = []
+        intent_utterances = {}
         for intent_definition in intent_definitions:
             intent_name = intent_definition.get('Name')
 
@@ -182,12 +183,13 @@ class LexBotBuilder(LexHelper, object):
             max_attempts = intent_definition.get('maxAttempts')
             intent_versions.append(
               intent_builder.put_intent(bot_name, intent_name, codehook,
+                intent_definition.get('utterances'),
                 max_attempts=max_attempts,
                 plaintext=intent_definition.get('Plaintext')
               )
             )
 
-        return intent_versions
+        return intent_versions, intent_utterances
 
     def _delete_intents(self, bot_name, intent_definitions):
         intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
