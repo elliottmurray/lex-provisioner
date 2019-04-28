@@ -379,6 +379,5 @@ def test_delete_deleted_intent(lex, aws_lambda):
 
         intent_builder.delete_intents([INTENT_NAME, INTENT_NAME_2])
 
-
-
+        stubber.assert_no_pending_responses()
 
