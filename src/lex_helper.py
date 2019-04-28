@@ -53,7 +53,7 @@ class LexHelper(object):
 
                     self._logger.info('Lex %s call failed because resource' + \
                             ' not exist', func_name)
-                    continue
+                    break
                 self._logger.warning('Lex %s call failed', func_name)
                 traceback.print_exc()
 

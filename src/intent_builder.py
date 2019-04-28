@@ -75,8 +75,9 @@ class IntentBuilder(LexHelper, object):
 
         self._logger.info('delete all intents')
         for intent in intents_definition:
-            self._delete_lex_resource(self._lex_sdk.delete_intent, 'delete_intent',
-                    name=intent)
+            if(self._intent_exists(intent)):
+                self._delete_lex_resource(self._lex_sdk.delete_intent, 'delete_intent',
+                        name=intent)
 
     def _create_message(self, messageKey, content, max_attempts=None):
         message = {

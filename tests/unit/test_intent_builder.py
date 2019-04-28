@@ -357,7 +357,9 @@ def test_delete_intent(lex, aws_lambda):
 
     intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_intent_get(stubber, INTENT_NAME)
         stub_intent_deletion(stubber, delete_intent_response, delete_request_1)
+        stub_intent_get(stubber, INTENT_NAME_2)
         stub_intent_deletion(stubber, delete_intent_response, delete_request_2)
 
         intent_builder.delete_intents([INTENT_NAME, INTENT_NAME_2])
@@ -370,7 +372,9 @@ def test_delete_deleted_intent(lex, aws_lambda):
 
     intent_builder = IntentBuilder(Mock(), lex_sdk=lex, lambda_sdk=aws_lambda)
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_not_found_get_request(stubber)
         stub_intent_deletion(stubber, delete_intent_response, delete_request_1)
+        stub_not_found_get_request(stubber)
         stub_intent_deletion(stubber, delete_intent_response, delete_request_2)
 
         intent_builder.delete_intents([INTENT_NAME, INTENT_NAME_2])
