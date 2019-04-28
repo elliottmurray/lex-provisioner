@@ -195,7 +195,7 @@ def stub_intent_get(stubber, intent_name):
                                          ANY})
 def stub_not_found_get_request(stubber):
     """stub not found get request"""
-    stubber.add_client_error('get_intent', http_status_code=404)
+    stubber.add_client_error('get_intent', service_error_code='NotFoundException')
 
 def stub_intent_creation(stubber, put_intent_response, put_request):
     stubber.add_response(

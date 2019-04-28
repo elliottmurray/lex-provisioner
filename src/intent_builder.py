@@ -32,17 +32,11 @@ class IntentBuilder(LexHelper, object):
           return True, checksum
 
       except ClientError as ex:
-          self._logger.info("EXCEPTION in get intent")
-          http_status_code = None
-          if 'ResponseMetadata' in ex.response:
-              response_metadata = ex.response['ResponseMetadata']
-              if 'HTTPStatusCode' in response_metadata:
-                  http_status_code = response_metadata['HTTPStatusCode']
-          if http_status_code == 404:
+          if ex.response['Error']['Code'] == 'NotFoundException':
+              self._logger.info('Intent %s not found', name)
               return False, None
 
-          self._logger.info('Lex get_intent call failed')
-          self._logger.info(ex)
+          self._logger.error('Lex get_intent call failed')
           raise
 
     def put_intent(self, bot_name, intent_name, codehook_uri, max_attempts=2, plaintext=None):

@@ -1,6 +1,9 @@
 import boto3
 import time
 
+from botocore.exceptions import ClientError
+import traceback
+
 class LexHelper(object):
 
     def _get_lex_sdk(self):
@@ -45,23 +48,14 @@ class LexHelper(object):
                 func(**properties)
                 self._logger.info('finished %s: %s', func_name, properties)
                 break
-            except Exception as ex:
-                self._logger.warning('Lex %s call failed', func_name)
-                self._logger.warning(ex)
-                count -= 1
-                if count:
-                    self._logger.warning(
-                        'Lex %s retry: %s. Sleeping for %s seconds',
-                        func_name,
-                        self.MAX_DELETE_TRIES - count,
-                        self.RETRY_SLEEP
-                    )
-                    time.sleep(self.RETRY_SLEEP)
-                    continue
-                else:
-                    self._logger.error('Lex %s call max retries', func_name)
-                    raise
+            except ClientError as ex:
+                if ex.response['Error']['Code'] == 'NotFoundException':
 
+                    self._logger.info('Lex %s call failed because resource' + \
+                            ' not exist', func_name)
+                    continue
+                self._logger.warning('Lex %s call failed', func_name)
+                traceback.print_exc()
 
     def _get_intent_arn(self, intent_name, aws_region, aws_account_id):
         return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
