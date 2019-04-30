@@ -58,15 +58,13 @@ def put_request_conclusion(plaintext):
     }
 
 
-def put_intent_request(bot_name, intent_name, plaintext=None):
+def put_intent_request(bot_name, intent_name, utterances, plaintext=None):
 
     return {
         'name': intent_name,
         'description': "Intent {0} for {1}".format(intent_name, bot_name),
         'slots': [],
-
-        'sampleUtterances': [ 'a test utterance', 'and another'
-        ],
+        'sampleUtterances': utterances,
         'confirmationPrompt': {
             'messages': [
                 {
@@ -245,7 +243,7 @@ def test_create_intent_plaintext(put_intent_response, mocker,
         stub_not_found_get_request(stubber)
 
         put_request = put_intent_request(BOT_NAME,
-                                          INTENT_NAME, plaintext=plaintext)
+                                          INTENT_NAME, UTTERANCES, plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
         put_request.update(put_request_conclusion(plaintext))
 
@@ -273,7 +271,7 @@ def test_update_intent_plaintext(put_intent_response, mocker,
             'conclusion': 'concluded'
         }
         put_request = put_intent_request(BOT_NAME,
-                                          INTENT_NAME, plaintext=plaintext)
+                                          INTENT_NAME, UTTERANCES, plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
         put_request.update(put_request_conclusion(plaintext))
         put_request.update({'checksum': 'chksum'})
@@ -310,7 +308,7 @@ def test_create_intent_response(put_intent_response, mocker,
 
         stub_not_found_get_request(stubber)
         put_request = put_intent_request(BOT_NAME,
-                INTENT_NAME, plaintext=plaintext)
+                INTENT_NAME, UTTERANCES, plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
         put_request.update(put_request_conclusion(plaintext))
 
@@ -342,7 +340,7 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, mocker,
 
         stub_not_found_get_request(stubber)
         put_request = put_intent_request(BOT_NAME,
-                INTENT_NAME,plaintext=plaintext)
+                INTENT_NAME, UTTERANCES, plaintext=plaintext)
         put_request.update(put_request_conclusion(plaintext))
 
         stub_intent_creation(stubber, put_intent_response, put_request)

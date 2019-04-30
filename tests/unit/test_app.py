@@ -45,13 +45,15 @@ def cfn_event(event_type):
                 {
                     "Name": 'greeting',
                     "Codehook": "arn:aws:xxx",
+                    "Utterances": ['greetings my friend','hello'],
                     "maxAttempts": 3,
                     "Plaintext": {
                         "confirmation": 'a confirmation'
                     }
-                },
-                {
+                  },
+                  {
                     "Name": 'farewell',
+                    "Utterances": ['farewell my friend'],
                     "Codehook": "arn:aws:xxx",
                     "maxAttempts": 3,
                     "Plaintext": {
@@ -311,8 +313,48 @@ def test_create_put_intent_called(intent_builder,
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
                 'farewell',
                 'arn:aws:xxx',
+                ['farewell my friend'],
                 max_attempts=3,
                 plaintext={'confirmation': 'a farewell confirmation'})
+#        intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
+#                'greeting',
+#                'arn:aws:xxx',
+#                ['greeting my friend'],
+#                max_attempts=3,
+#                plaintext={'confirmation': 'a greeting confirmation'})
+
+@mock.patch('put.IntentBuilder')
+def test_create_put_intent_called_error_no_utterance(intent_builder,
+                                  cfn_create_event,
+                                  get_bot_response,
+                                  put_bot_response,
+                                  mocker):
+    """ create put intent called test """
+
+    lex = setup()
+    bot_props = cfn_create_event['ResourceProperties']
+
+    create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
+    expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
+
+    with Stubber(lex) as stubber:
+        intent_builder_instance = stub_put_intent(intent_builder)
+
+        stub_not_found_get_request(stubber)
+        stubber.add_response('put_bot', put_bot_response, expected_put_params)
+
+        stubber.add_response('create_bot_version',
+                             create_bot_version_response, create_bot_version_params)
+
+        context = mocker.Mock()
+        del cfn_create_event['ResourceProperties']['intents'][0]['Utterances']
+        del cfn_create_event['ResourceProperties']['intents'][1]['Utterances']
+
+        with pytest.raises(Exception) as excinfo:
+            app.create(cfn_create_event, context, lex_sdk=lex)
+
+        assert "Utterances missing in intents" in str(excinfo.value)
+        #fail()
 
 @mock.patch('put.IntentBuilder')
 def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, mocker):

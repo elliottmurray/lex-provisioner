@@ -172,21 +172,28 @@ class LexBotBuilder(LexHelper, object):
 
         self._logger.info('Successfully deleted bot and associated resources')
 
+    def _validate_intent(self, intent_definition):
+            utterances = intent_definition.get('Utterances')
+
+            if utterances is None:
+                raise Exception("Utterances missing in intents")
+
+
     def _put_intents(self, bot_name, intent_definitions):
         intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
         intent_versions = []
         intent_utterances = {}
         for intent_definition in intent_definitions:
+            self._validate_intent(intent_definition)
             intent_name = intent_definition.get('Name')
-
             codehook = intent_definition.get('Codehook')
             max_attempts = intent_definition.get('maxAttempts')
             intent_versions.append(
-              intent_builder.put_intent(bot_name, intent_name, codehook,
-                intent_definition.get('utterances'),
-                max_attempts=max_attempts,
-                plaintext=intent_definition.get('Plaintext')
-              )
+                intent_builder.put_intent(bot_name, intent_name, codehook,
+                    intent_definition.get('Utterances'),
+                    max_attempts=max_attempts,
+                    plaintext=intent_definition.get('Plaintext')
+                  )
             )
 
         return intent_versions, intent_utterances

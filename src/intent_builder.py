@@ -22,7 +22,8 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
-    def put_intent(self, bot_name, intent_name, codehook_uri, utterances, max_attempts=2, plaintext=None):
+    def put_intent(self, bot_name, intent_name, codehook_uri, utterances,
+                   max_attempts=3, plaintext=None):
         """Create intent and configure any required lambda permissions
 
         Currently only supports intents that use the same lambda for both
@@ -36,7 +37,7 @@ class IntentBuilder(LexHelper, object):
         if(exists):
             new_intent = self._update_lex_resource(
                 self._lex_sdk.put_intent, 'put_intent', checksum, self.put_intent_request(bot_name,
-                    intent_name, codehook_uri, utterances, maxAttempts=max_attempts, plaintext=plaintext)
+                    intent_name, codehook_uri, utterances, max_attempts, plaintext=plaintext)
             )
             version_response = self._lex_sdk.create_intent_version(name=intent_name,
                                                                    checksum=new_intent['checksum'])
@@ -44,7 +45,7 @@ class IntentBuilder(LexHelper, object):
         else:
             new_intent = self._create_lex_resource(
                 self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                    intent_name, codehook_uri, max_attempts, plaintext=plaintext)
+                    intent_name, codehook_uri, utterances, max_attempts, plaintext=plaintext)
             )
             version_response = self._lex_sdk.create_intent_version(name=intent_name,
                                                                    checksum=new_intent['checksum'])
