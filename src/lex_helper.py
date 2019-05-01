@@ -1,10 +1,13 @@
 import boto3
 import time
+import os
 
 from botocore.exceptions import ClientError
 import traceback
 
 class LexHelper(object):
+    MAX_DELETE_TRIES = 5
+    RETRY_SLEEP = 5
 
     def _get_lex_sdk(self):
         return boto3.Session().client('lex-models')
@@ -36,9 +39,6 @@ class LexHelper(object):
             self._logger.error(ex)
             raise
 
-    MAX_DELETE_TRIES = 5
-    RETRY_SLEEP = 5
-
     def _delete_lex_resource(self, func, func_name, **properties):
         '''Delete lex resource'''
         self._logger.info('%s : %s', func_name, properties)
@@ -58,9 +58,20 @@ class LexHelper(object):
             self._logger.warning('Lex %s call failed', func_name)
             traceback.print_exc()
 
-    def _get_intent_arn(self, intent_name, aws_region, aws_account_id):
+    def _get_aws_details(self):
+        aws_account_id = self._context.invoked_function_arn.split(':')[4]
+        aws_region = os.environ['AWS_REGION']
+        return aws_account_id, aws_region
+
+    def _get_intent_arn(self, intent_name):
+        aws_account_id, aws_region = self._get_aws_details()
         return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
             + ':intent:' + intent_name + ':*'
+
+    def _get_function_arn(self, function_name, prefix=''):
+        aws_account_id, aws_region = self._get_aws_details()
+        return 'arn:aws:lambda:' + aws_region + ':' + aws_account_id \
+            + ':function:' + prefix + function_name
 
     def _not_found(self, ex, func_name):
         if ex.response['Error']['Code'] == 'NotFoundException':

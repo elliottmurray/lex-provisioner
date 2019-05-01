@@ -19,8 +19,9 @@ class LexBotBuilder(LexHelper, object):
 
     """Create/Update different elements that make up a Lex bot"""
 
-    def __init__(self, logger, lex_sdk=None):
+    def __init__(self, logger, context, lex_sdk=None):
         self._logger = logger
+        self._context = context
         if(lex_sdk == None):
             self._lex_sdk = self._get_lex_sdk()
         else:
@@ -178,7 +179,6 @@ class LexBotBuilder(LexHelper, object):
             if utterances is None:
                 raise Exception("Utterances missing in intents")
 
-
     def _put_intents(self, bot_name, intent_definitions):
         intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
         intent_versions = []
@@ -187,6 +187,7 @@ class LexBotBuilder(LexHelper, object):
             self._validate_intent(intent_definition)
             intent_name = intent_definition.get('Name')
             codehook = intent_definition.get('Codehook')
+            codehook_uri = self._get_function_arn(codehook)
             max_attempts = intent_definition.get('maxAttempts')
             intent_versions.append(
                 intent_builder.put_intent(bot_name, intent_name, codehook,

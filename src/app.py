@@ -118,7 +118,7 @@ def create(event, context, lex_sdk=None):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    lex_bot_builder = LexBotBuilder(logger, lex_sdk)
+    lex_bot_builder = LexBotBuilder(logger, context, lex_sdk)
     resource_properties = event.get('ResourceProperties')
     name_prefix = resource_properties.get('NamePrefix')
     bot_name = name_prefix + event['LogicalResourceId']
@@ -157,7 +157,7 @@ def delete(event, context, lex_sdk=None):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    lex_bot_builder = LexBotBuilder(logger, lex_sdk)
+    lex_bot_builder = LexBotBuilder(logger, context, lex_sdk)
     resource_properties = event.get('ResourceProperties')
     name_prefix = resource_properties.get('NamePrefix')
     bot_name = name_prefix + event['LogicalResourceId']

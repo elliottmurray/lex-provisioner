@@ -44,7 +44,7 @@ def cfn_event(event_type):
             "intents":[
                 {
                     "Name": 'greeting',
-                    "Codehook": "arn:aws:xxx",
+                    "Codehook": "GreetingLambda",
                     "Utterances": ['greetings my friend','hello'],
                     "maxAttempts": 3,
                     "Plaintext": {
@@ -246,6 +246,7 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
         context = mocker.Mock()
         context.aws_request_id = 12345
         context.get_remaining_time_in_millis.return_value = 100000.0
+        context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
 
         response = app.create(cfn_create_event, context, lex_sdk=lex)
         assert response['BotName'] == BOT_NAME
@@ -311,8 +312,7 @@ def test_create_put_intent_called(intent_builder,
 
         assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-                'farewell',
-                'arn:aws:xxx',
+                'farewell', 'arn:aws:GreetingLambda:xxx:yyy',
                 ['farewell my friend'],
                 max_attempts=3,
                 plaintext={'confirmation': 'a farewell confirmation'})

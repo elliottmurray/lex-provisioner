@@ -197,6 +197,7 @@ class IntentBuilder(LexHelper, object):
         if codehook_uri:
             # If the intent needs to invoke a lambda function, we must give it permission to do so
             # before creating the intent.
+            self._logger.info("Codehook uri: %s", codehook_uri)
             arn_tokens = codehook_uri.split(':')
             aws_region = arn_tokens[3]
             aws_account_id = arn_tokens[4]
