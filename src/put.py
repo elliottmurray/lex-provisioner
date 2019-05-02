@@ -187,7 +187,6 @@ class LexBotBuilder(LexHelper, object):
             self._validate_intent(intent_definition)
             intent_name = intent_definition.get('Name')
             codehook = intent_definition.get('Codehook')
-            codehook_uri = self._get_function_arn(codehook)
             max_attempts = intent_definition.get('maxAttempts')
             intent_versions.append(
                 intent_builder.put_intent(bot_name, intent_name, codehook,

@@ -54,7 +54,7 @@ def cfn_event(event_type):
                   {
                     "Name": 'farewell',
                     "Utterances": ['farewell my friend'],
-                    "Codehook": "arn:aws:xxx",
+                    "Codehook": "FarewellLambda",
                     "maxAttempts": 3,
                     "Plaintext": {
                         "confirmation": 'a farewell confirmation'
@@ -222,6 +222,13 @@ def stub_put_intent(intent_builder):
         intent_builder_instance.put_intent.side_effect = put_intent_responses()
         return intent_builder_instance
 
+def mock_context(mocker):
+        context = mocker.Mock()
+        context.aws_request_id = 12345
+        context.get_remaining_time_in_millis.return_value = 100000.0
+        context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
+        return context
+
 @mock.patch('put.IntentBuilder')
 def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
         mocker):
@@ -242,11 +249,7 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
 
         stubber.add_response('create_bot_version',
                              create_bot_version_response, create_bot_version_params)
-
-        context = mocker.Mock()
-        context.aws_request_id = 12345
-        context.get_remaining_time_in_millis.return_value = 100000.0
-        context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
+        context = mock_context(mocker)
 
         response = app.create(cfn_create_event, context, lex_sdk=lex)
         assert response['BotName'] == BOT_NAME
@@ -273,9 +276,7 @@ def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, moc
         stubber.add_response('create_bot_version',
                              create_bot_version_response, create_bot_version_params)
 
-        context = mocker.Mock()
-        context.aws_request_id = 12345
-        context.get_remaining_time_in_millis.return_value = 100000.0
+        context = mock_context(mocker)
 
         response = app.create(cfn_create_event, context, lex_sdk=lex)
         assert response['BotName'] == BOT_NAME
@@ -306,22 +307,16 @@ def test_create_put_intent_called(intent_builder,
         stubber.add_response('create_bot_version',
                              create_bot_version_response, create_bot_version_params)
 
-        context = mocker.Mock()
+        context = mock_context(mocker)
 
         app.create(cfn_create_event, context, lex_sdk=lex)
 
         assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-                'farewell', 'arn:aws:GreetingLambda:xxx:yyy',
+                'farewell', 'FarewellLambda',
                 ['farewell my friend'],
                 max_attempts=3,
                 plaintext={'confirmation': 'a farewell confirmation'})
-#        intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-#                'greeting',
-#                'arn:aws:xxx',
-#                ['greeting my friend'],
-#                max_attempts=3,
-#                plaintext={'confirmation': 'a greeting confirmation'})
 
 @mock.patch('put.IntentBuilder')
 def test_create_put_intent_called_error_no_utterance(intent_builder,

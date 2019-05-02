@@ -10,8 +10,9 @@ from utils import ValidationError
 class IntentBuilder(LexHelper, object):
 
     RETRY_SLEEP = 5
-    def __init__(self, logger, lex_sdk=None, lambda_sdk=None):
+    def __init__(self, logger, context, lex_sdk=None, lambda_sdk=None):
         self._logger = logger
+        self._context = context
         if(lex_sdk == None):
             self._lex_sdk = self._get_lex_sdk()
         else:
@@ -22,7 +23,7 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
-    def put_intent(self, bot_name, intent_name, codehook_uri, utterances,
+    def put_intent(self, bot_name, intent_name, lambda_name, utterances,
                    max_attempts=3, plaintext=None):
         """Create intent and configure any required lambda permissions
 
@@ -30,6 +31,8 @@ class IntentBuilder(LexHelper, object):
         code hooks (i.e. 'dialogCodeHook' and 'fulfillmentActivity')
         """
         self._logger.info('put intent')
+
+        codehook_uri = self._get_function_arn(lambda_name)
 
         self._add_permission_to_lex_to_codehook(codehook_uri, intent_name)
         # TODO if the intent does not need to invoke a lambda, create it
@@ -209,8 +212,7 @@ class IntentBuilder(LexHelper, object):
                     StatementId=statement_id,
                     Action='lambda:InvokeFunction',
                     Principal='lex.amazonaws.com',
-                    SourceArn=self._get_intent_arn(
-                        intent_name, aws_region, aws_account_id)
+                    SourceArn=self._get_intent_arn(intent_name)
                 )
                 self._logger.info(
                     'Response for adding intent permission to lambda: %s', add_permission_response
