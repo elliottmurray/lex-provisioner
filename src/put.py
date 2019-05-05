@@ -180,7 +180,7 @@ class LexBotBuilder(LexHelper, object):
                 raise Exception("Utterances missing in intents")
 
     def _put_intents(self, bot_name, intent_definitions):
-        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
+        intent_builder = IntentBuilder(self._logger, self._context, lex_sdk=self._lex_sdk)
         intent_versions = []
         intent_utterances = {}
         for intent_definition in intent_definitions:
@@ -199,7 +199,7 @@ class LexBotBuilder(LexHelper, object):
         return intent_versions, intent_utterances
 
     def _delete_intents(self, bot_name, intent_definitions):
-        intent_builder = IntentBuilder(self._logger, lex_sdk=self._lex_sdk)
+        intent_builder = IntentBuilder(self._logger, self._context, lex_sdk=self._lex_sdk)
         intent_names = [intent.get('Name') for intent in intent_definitions]
 
         self._logger.info(intent_names)

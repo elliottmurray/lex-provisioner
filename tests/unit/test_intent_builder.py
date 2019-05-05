@@ -8,6 +8,7 @@ import datetime
 
 from utils import ValidationError
 from intent_builder import IntentBuilder
+from lex_helper import LexHelper
 
 aws_region = 'us-east-1'
 aws_account_id = '1234567789'
@@ -101,6 +102,10 @@ def lex():
 @pytest.fixture()
 def aws_lambda():
     return botocore.session.get_session().create_client('lambda')
+
+@pytest.fixture()
+def sts():
+    return botocore.session.get_session().create_client('sts')
 
 @pytest.fixture()
 def put_intent_response():
@@ -221,9 +226,15 @@ def codehook_uri():
     return 'arn:aws:lambda:{0}:{1}:function:{2}'.format(aws_region,
             aws_account_id, CODEHOOKNAME)
 
+def monkeypatch_account(monkeypatch):
+    monkeypatch.setattr(LexHelper, '_get_aws_details', lambda x:
+            [aws_account_id, aws_region])
+
+
 def test_create_intent_missing_rejection_plaintext(put_intent_response,
-        codehook_uri, mocker, lex, aws_lambda):
+        codehook_uri, mocker, lex, aws_lambda, monkeypatch):
    context = mock_context(mocker)
+   monkeypatch_account(monkeypatch)
 
    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
@@ -238,11 +249,13 @@ def test_create_intent_missing_rejection_plaintext(put_intent_response,
                     plaintext=plaintext)
 
 def test_create_intent_plaintext(put_intent_response, codehook_uri, mocker,
-        lex, aws_lambda):
+        lex, aws_lambda, monkeypatch):
     context = mock_context(mocker)
+    monkeypatch_account(monkeypatch)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
+        #sts_stub.add_response('get_caller_identity', {'Arn':codehook_uri} )
 
         intent_builder = IntentBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
 
@@ -269,8 +282,10 @@ def test_create_intent_plaintext(put_intent_response, codehook_uri, mocker,
         lambda_stubber.assert_no_pending_responses()
 
 def test_update_intent_plaintext(put_intent_response, codehook_uri, mocker,
-        lex, aws_lambda):
+        lex, aws_lambda, monkeypatch):
     context = mock_context(mocker)
+
+    monkeypatch_account(monkeypatch)
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
 
@@ -304,9 +319,10 @@ def test_update_intent_plaintext(put_intent_response, codehook_uri, mocker,
         assert response['intentVersion'] == '1'
 
 def test_create_intent_response(put_intent_response, codehook_uri, mocker,
-        lex, aws_lambda):
+        lex, aws_lambda, monkeypatch):
     """ test the response from create intent """
     context = mock_context(mocker)
+    monkeypatch_account(monkeypatch)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
@@ -340,9 +356,10 @@ def test_create_intent_response(put_intent_response, codehook_uri, mocker,
 
 
 def test_create_intent_missing_followUp_plaintext(put_intent_response, codehook_uri, mocker,
-        lex, aws_lambda):
+        lex, aws_lambda, monkeypatch):
     context = mock_context(mocker)
 
+    monkeypatch_account(monkeypatch)
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
         intent_builder = IntentBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)

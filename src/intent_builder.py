@@ -201,9 +201,10 @@ class IntentBuilder(LexHelper, object):
             # If the intent needs to invoke a lambda function, we must give it permission to do so
             # before creating the intent.
             self._logger.info("Codehook uri: %s", codehook_uri)
-            arn_tokens = codehook_uri.split(':')
-            aws_region = arn_tokens[3]
-            aws_account_id = arn_tokens[4]
+            _, aws_region = self._get_aws_details()
+         #   arn_tokens = codehook_uri.split(':')
+         #   aws_region = arn_tokens[3]
+         #   aws_account_id = arn_tokens[4]
             statement_id = 'lex-' + aws_region + \
                 '-' + intent_name
             try:
@@ -212,7 +213,7 @@ class IntentBuilder(LexHelper, object):
                     StatementId=statement_id,
                     Action='lambda:InvokeFunction',
                     Principal='lex.amazonaws.com',
-                    SourceArn=self._get_intent_arn(intent_name)
+                    SourceArn=codehook_uri
                 )
                 self._logger.info(
                     'Response for adding intent permission to lambda: %s', add_permission_response

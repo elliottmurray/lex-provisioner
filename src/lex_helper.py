@@ -59,14 +59,17 @@ class LexHelper(object):
             traceback.print_exc()
 
     def _get_aws_details(self):
-        aws_account_id = self._context.invoked_function_arn.split(':')[4]
         aws_region = os.environ['AWS_REGION']
+        sts = boto3.client('sts')
+        aws_account_id = sts.get_caller_identity()["Arn"].split(':')[4]
+
+        #self._logger.debug('Account id: %s', aws_account_id)
         return aws_account_id, aws_region
 
-    def _get_intent_arn(self, intent_name):
+    def _get_intent_arn(self, intent_name, prefix=''):
         aws_account_id, aws_region = self._get_aws_details()
         return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
-            + ':intent:' + intent_name + ':*'
+                + ':intent:' + prefix +  intent_name + ':*'
 
     def _get_function_arn(self, function_name, prefix=''):
         aws_account_id, aws_region = self._get_aws_details()

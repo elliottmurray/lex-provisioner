@@ -20,7 +20,7 @@
     "intents":[
         {
           "Name": "elliott_helloworld",
-          "Codehook": "arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld",
+          "Codehook": "elliott-helloworld",
           "maxAttempts": 3,
           "Utterances": [
               "first utternace",

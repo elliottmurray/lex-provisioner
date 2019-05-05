@@ -68,10 +68,11 @@ def cfn_event(event_type):
         "StackId": "arn:aws:cloudformation:us-east-1:773592622512:stack/python-test/db2706d0-2683-11e9-a40a-0a515b01a4a4"
     }
 
-
-
 @pytest.fixture()
 def get_bot_response():
+    return _get_bot_response()
+
+def _get_bot_response():
     """ Generates get bot response"""
     return {
         "name": "test bot",
@@ -209,7 +210,7 @@ def stub_not_found_get_request(stubber):
 
 def stub_get_request(stubber):
     """stub get request"""
-    stubber.add_response('get_bot', get_bot_response(), get_bot_request())
+    stubber.add_response('get_bot', _get_bot_response(), get_bot_request())
 
 def put_intent_responses():
     put_intent_response_1 = {'intentName': 'greeting', 'intentVersion': '$LATEST'}
