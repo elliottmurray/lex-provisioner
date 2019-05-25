@@ -244,7 +244,7 @@ def test_create_intent_missing_rejection_plaintext(put_intent_response,
         }
 
         with pytest.raises(Exception):
-            intent_builder.put_intent(BOT_NAME, INTENT_NAME, CODEHOOKNAME,
+            intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                     UTTERANCES,
                     plaintext=plaintext)
 
@@ -275,7 +275,7 @@ def test_create_intent_plaintext(put_intent_response, codehook_uri, mocker,
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        intent_builder.put_intent(BOT_NAME, INTENT_NAME, CODEHOOKNAME,
+        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 UTTERANCES, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
@@ -308,7 +308,7 @@ def test_update_intent_plaintext(put_intent_response, codehook_uri, mocker,
         stub_intent_creation(stubber, put_intent_response, put_request)
 
         response = intent_builder.put_intent(BOT_NAME, INTENT_NAME,
-                CODEHOOKNAME,
+                codehook_uri,
                 UTTERANCES, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
@@ -345,7 +345,7 @@ def test_create_intent_response(put_intent_response, codehook_uri, mocker,
         stub_intent_creation(stubber, put_intent_response, put_request)
 
         response = intent_builder.put_intent(BOT_NAME, INTENT_NAME,
-                CODEHOOKNAME,
+                codehook_uri,
                 UTTERANCES, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()
@@ -377,7 +377,7 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, codehook_
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        intent_builder.put_intent(BOT_NAME, INTENT_NAME, CODEHOOKNAME,
+        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 UTTERANCES, plaintext=plaintext)
 
         stubber.assert_no_pending_responses()

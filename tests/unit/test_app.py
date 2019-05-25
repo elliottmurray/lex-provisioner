@@ -10,6 +10,7 @@ import crhelper
 
 BOT_NAME = 'pythontestLexBot'
 BOT_VERSION = '$LATEST'
+LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 
 @pytest.fixture()
 def cfn_create_event():
@@ -44,7 +45,7 @@ def cfn_event(event_type):
             "intents":[
                 {
                     "Name": 'greeting',
-                    "Codehook": "GreetingLambda",
+                    "CodehookArn": LAMBDA_ARN,
                     "Utterances": ['greetings my friend','hello'],
                     "maxAttempts": 3,
                     "Plaintext": {
@@ -53,8 +54,8 @@ def cfn_event(event_type):
                   },
                   {
                     "Name": 'farewell',
+                    "CodehookArn": LAMBDA_ARN,
                     "Utterances": ['farewell my friend'],
-                    "Codehook": "FarewellLambda",
                     "maxAttempts": 3,
                     "Plaintext": {
                         "confirmation": 'a farewell confirmation'
@@ -314,7 +315,7 @@ def test_create_put_intent_called(intent_builder,
 
         assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-                'farewell', 'FarewellLambda',
+                'farewell', LAMBDA_ARN, 
                 ['farewell my friend'],
                 max_attempts=3,
                 plaintext={'confirmation': 'a farewell confirmation'})

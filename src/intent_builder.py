@@ -23,7 +23,7 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
-    def put_intent(self, bot_name, intent_name, lambda_name, utterances,
+    def put_intent(self, bot_name, intent_name, codehook_arn, utterances,
                    max_attempts=3, plaintext=None):
         """Create intent and configure any required lambda permissions
 
@@ -32,15 +32,15 @@ class IntentBuilder(LexHelper, object):
         """
         self._logger.info('put intent')
 
-        codehook_uri = self._get_function_arn(lambda_name)
+        #codehook_uri = self._get_function_arn(lambda_name)
 
-        self._add_permission_to_lex_to_codehook(codehook_uri, intent_name)
+        self._add_permission_to_lex_to_codehook(codehook_arn, intent_name)
         # TODO if the intent does not need to invoke a lambda, create it
         exists, checksum = self._intent_exists(intent_name)
         if(exists):
             new_intent = self._update_lex_resource(
                 self._lex_sdk.put_intent, 'put_intent', checksum, self.put_intent_request(bot_name,
-                    intent_name, codehook_uri, utterances, max_attempts, plaintext=plaintext)
+                    intent_name, codehook_arn, utterances, max_attempts, plaintext=plaintext)
             )
             version_response = self._lex_sdk.create_intent_version(name=intent_name,
                                                                    checksum=new_intent['checksum'])
@@ -48,7 +48,7 @@ class IntentBuilder(LexHelper, object):
         else:
             new_intent = self._create_lex_resource(
                 self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
-                    intent_name, codehook_uri, utterances, max_attempts, plaintext=plaintext)
+                    intent_name, codehook_arn, utterances, max_attempts, plaintext=plaintext)
             )
             version_response = self._lex_sdk.create_intent_version(name=intent_name,
                                                                    checksum=new_intent['checksum'])
@@ -202,9 +202,11 @@ class IntentBuilder(LexHelper, object):
             # before creating the intent.
             self._logger.info("Codehook uri: %s", codehook_uri)
             _, aws_region = self._get_aws_details()
-         #   arn_tokens = codehook_uri.split(':')
+            arn_tokens = codehook_uri.split(':')
          #   aws_region = arn_tokens[3]
          #   aws_account_id = arn_tokens[4]
+         
+            function_name = arn_tokens[5]
             statement_id = 'lex-' + aws_region + \
                 '-' + intent_name
             try:
@@ -213,7 +215,7 @@ class IntentBuilder(LexHelper, object):
                     StatementId=statement_id,
                     Action='lambda:InvokeFunction',
                     Principal='lex.amazonaws.com',
-                    SourceArn=codehook_uri
+                    SourceArn=self._get_intent_arn(intent_name)
                 )
                 self._logger.info(
                     'Response for adding intent permission to lambda: %s', add_permission_response
