@@ -32,8 +32,6 @@ class IntentBuilder(LexHelper, object):
         """
         self._logger.info('put intent')
 
-        #codehook_uri = self._get_function_arn(lambda_name)
-
         self._add_permission_to_lex_to_codehook(codehook_arn, intent_name)
         # TODO if the intent does not need to invoke a lambda, create it
         exists, checksum = self._intent_exists(intent_name)
@@ -166,10 +164,6 @@ class IntentBuilder(LexHelper, object):
 
     def put_intent_request(self, bot_name, intent_name, codehook_uri,
             utterances, max_attempts=3, plaintext=None):
-#               'codeHook': {
-#                    'uri': codehook_uri,
-#                    'messageVersion': '1.0'
-#     }
 # for when fulfillment activity needs a codehook this will be needed
         #utterances = [ 'a test utterance', 'another one']
 
@@ -177,7 +171,6 @@ class IntentBuilder(LexHelper, object):
             'name': intent_name,
             'description': "Intent {0} for {1}".format(intent_name, bot_name),
             'slots': [],
-
             'sampleUtterances': utterances,
             'dialogCodeHook': {
                 'uri': codehook_uri,
@@ -205,7 +198,7 @@ class IntentBuilder(LexHelper, object):
             arn_tokens = codehook_uri.split(':')
          #   aws_region = arn_tokens[3]
          #   aws_account_id = arn_tokens[4]
-         
+
             function_name = arn_tokens[5]
             statement_id = 'lex-' + aws_region + \
                 '-' + intent_name
