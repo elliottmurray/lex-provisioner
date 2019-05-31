@@ -200,13 +200,12 @@ class IntentBuilder(LexHelper, object):
          #   aws_account_id = arn_tokens[4]
 
             function_name = arn_tokens[5]
-            statement_id = 'lex-' + aws_region + \
-                '-' + intent_name
+            statement_id = 'lex-' + aws_region + '-' + intent_name
             try:
                 add_permission_response = self._lambda_sdk.add_permission(
                     FunctionName=codehook_uri,
                     StatementId=statement_id,
-                    Action='lambda:InvokeFunction',
+                    Action='lambda:invokeFunction',
                     Principal='lex.amazonaws.com',
                     SourceArn=self._get_intent_arn(intent_name)
                 )

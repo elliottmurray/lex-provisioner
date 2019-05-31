@@ -188,7 +188,7 @@ def stub_lambda_request(lambda_stubber, codehook_uri):
     lambda_request = {
         'FunctionName': codehook_uri,
         'StatementId': 'lex-{0}-{1}'.format(aws_region, INTENT_NAME),
-        'Action': 'lambda:InvokeFunction',
+        'Action': 'lambda:invokeFunction',
         'Principal': 'lex.amazonaws.com',
         'SourceArn': ANY
     }

@@ -19,12 +19,12 @@
     },
     "intents":[
         {
-          "Name": "elliott_helloworld",
+          "Name": "elliottintent",
           "CodehookArn": "arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld",
           "maxAttempts": 3,
           "Utterances": [
-              "first utternace",
-              "second utternace"
+              "first utterance",
+              "second utterance"
           ],
           "Plaintext": {
               "confirmation": "a confirmation",
