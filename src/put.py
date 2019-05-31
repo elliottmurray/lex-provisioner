@@ -59,6 +59,7 @@ class LexBotBuilder(LexHelper, object):
         """Create/Update bot"""
 
         bot_exists, checksum = self._bot_exists(bot_name)
+        version_response = None
 
         if(bot_exists):
             creation_response = self._update_lex_resource(
@@ -67,21 +68,28 @@ class LexBotBuilder(LexHelper, object):
             version_response = self._lex_sdk.create_bot_version(
                 name=bot_name, checksum=creation_response['checksum'])
 
-            return version_response
         else:
             self._logger.info(bot_properties)
 
             creation_response = self._create_lex_resource(
                 self._lex_sdk.put_bot, 'put_bot', bot_properties)
 
+            checksum = creation_response['checksum']
             version_response = self._create_lex_resource(
                 self._lex_sdk.create_bot_version, 'create_bot_version',
                 {
                     'name': bot_name,
-                    'checksum': creation_response['checksum']
+                    'checksum': checksum
                 })
-            return version_response
 
+            creation_response = self._update_lex_resource(
+                self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
+
+            version_response = self._lex_sdk.create_bot_version(
+                name=bot_name, checksum=checksum)
+
+
+        return version_response
 
     def _replace_slot_type_version(self, intents_definition, slot_types):
         # todo construct custom slot types and versions for intents
