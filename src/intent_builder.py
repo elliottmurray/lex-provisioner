@@ -54,7 +54,6 @@ class IntentBuilder(LexHelper, object):
 
         self._logger.info('Created new intent: %s', version_response)
         return { "intentName": version_response['name'],
-               # "intentVersion": '$LATEST'}
                 "intentVersion": version_response['version']}
 
     def delete_intents(self, intents_definition, max_attempts=2):

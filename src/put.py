@@ -58,7 +58,7 @@ class LexBotBuilder(LexHelper, object):
     def _put_bot(self, bot_name, bot_properties):
         """Create/Update bot"""
 
-        self._logger.info('PUT BOT')
+        self._logger.info('Put bot properites %s', bot_name)
         self._logger.info(bot_properties)
 
         bot_exists, checksum = self._bot_exists(bot_name)
@@ -84,7 +84,7 @@ class LexBotBuilder(LexHelper, object):
                 'checksum': checksum
             })
 
-        self._logger.info("BOT VERSION put")
+        self._logger.info("Created bot version %s", bot_name)
         self._logger.info(version_response)
 
         return version_response
