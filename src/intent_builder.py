@@ -35,24 +35,26 @@ class IntentBuilder(LexHelper, object):
         self._add_permission_to_lex_to_codehook(codehook_arn, intent_name)
         # TODO if the intent does not need to invoke a lambda, create it
         exists, checksum = self._intent_exists(intent_name)
-        if(exists):
-            new_intent = self._update_lex_resource(
-                self._lex_sdk.put_intent, 'put_intent', checksum, self.put_intent_request(bot_name,
-                    intent_name, codehook_arn, utterances, max_attempts, plaintext=plaintext)
-            )
-            version_response = self._lex_sdk.create_intent_version(name=intent_name,
-                                                                   checksum=new_intent['checksum'])
-
-        else:
+        if(exists==False):
             new_intent = self._create_lex_resource(
                 self._lex_sdk.put_intent, 'put_intent', self.put_intent_request(bot_name,
                     intent_name, codehook_arn, utterances, max_attempts, plaintext=plaintext)
             )
-            version_response = self._lex_sdk.create_intent_version(name=intent_name,
-                                                                   checksum=new_intent['checksum'])
+            checksum = new_intent['checksum']
+
+        else:
+            new_intent = self._update_lex_resource(
+                self._lex_sdk.put_intent, 'put_intent', checksum, self.put_intent_request(bot_name,
+                    intent_name, codehook_arn, utterances, max_attempts, plaintext=plaintext)
+            )
+            checksum = new_intent['checksum']
+
+        version_response = self._lex_sdk.create_intent_version(name=intent_name,
+                                                               checksum=checksum)
 
         self._logger.info('Created new intent: %s', version_response)
         return { "intentName": version_response['name'],
+               # "intentVersion": '$LATEST'}
                 "intentVersion": version_response['version']}
 
     def delete_intents(self, intents_definition, max_attempts=2):

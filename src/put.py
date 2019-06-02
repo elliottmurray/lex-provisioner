@@ -58,15 +58,16 @@ class LexBotBuilder(LexHelper, object):
     def _put_bot(self, bot_name, bot_properties):
         """Create/Update bot"""
 
+        self._logger.info('PUT BOT')
+        self._logger.info(bot_properties)
+
         bot_exists, checksum = self._bot_exists(bot_name)
         version_response = None
 
         if(bot_exists):
             creation_response = self._update_lex_resource(
                 self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
-
-            version_response = self._lex_sdk.create_bot_version(
-                name=bot_name, checksum=creation_response['checksum'])
+            checksum = creation_response['checksum']
 
         else:
             self._logger.info(bot_properties)
@@ -75,19 +76,16 @@ class LexBotBuilder(LexHelper, object):
                 self._lex_sdk.put_bot, 'put_bot', bot_properties)
 
             checksum = creation_response['checksum']
-            version_response = self._create_lex_resource(
-                self._lex_sdk.create_bot_version, 'create_bot_version',
-                {
-                    'name': bot_name,
-                    'checksum': checksum
-                })
 
-            creation_response = self._update_lex_resource(
-                self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
+        version_response = self._create_lex_resource(
+            self._lex_sdk.create_bot_version, 'create_bot_version',
+            {
+                'name': bot_name,
+                'checksum': checksum
+            })
 
-            version_response = self._lex_sdk.create_bot_version(
-                name=bot_name, checksum=checksum)
-
+        self._logger.info("BOT VERSION put")
+        self._logger.info(version_response)
 
         return version_response
 
@@ -144,6 +142,7 @@ class LexBotBuilder(LexHelper, object):
         intents_definition = resource_properties['intents']
         # intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
         intent_defs = self._put_intents(bot_name, intents_definition)
+        self._logger.info(intent_defs)
 
         checksum = ''
         # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
