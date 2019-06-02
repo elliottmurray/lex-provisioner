@@ -351,7 +351,6 @@ def test_create_put_intent_called_error_no_utterance(intent_builder,
             app.create(cfn_create_event, context, lex_sdk=lex)
 
         assert "Utterances missing in intents" in str(excinfo.value)
-        #fail()
 
 @mock.patch('put.IntentBuilder')
 def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, mocker):

@@ -143,6 +143,13 @@ class IntentBuilder(LexHelper, object):
                     "neither. Had ".format(plaintext))
 
     def _put_request_followUp(self, request, plaintext, maxAttempts):
+        if(plaintext.get('followUpPrompt') ==  None):
+            return
+
+        if(plaintext.get('conclusion') !=  None):
+            raise ValidationError('Can not have conclusion and followUpPrompt ' +
+                    'in intent %s', request.get('intent_name'))
+
         if (plaintext.get('followUpPrompt') is not None) and (plaintext.get('followUpRejection') is not None):
             request.update(self._get_followup_message(plaintext, maxAttempts))
         elif not (plaintext.get('followUpPrompt') is None) and  (plaintext.get('followUpPrompt') is None):
@@ -151,6 +158,9 @@ class IntentBuilder(LexHelper, object):
 
 
     def _put_request_conclusion(self, request, plaintext):
+        if(plaintext.get('conclusion') ==  None):
+            return
+
         request.update({
             'conclusionStatement': {
                 'messages': [
