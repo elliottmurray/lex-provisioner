@@ -5,7 +5,7 @@ import requests
 import os
 import json
 import crhelper
-from put import LexBotBuilder
+from bot_builder import LexBotBuilder
 
 # initialise logger
 logger = crhelper.log_config({"RequestId": "CONTAINER_INIT"})

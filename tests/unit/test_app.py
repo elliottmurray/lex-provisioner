@@ -231,7 +231,7 @@ def mock_context(mocker):
         context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
         return context
 
-@mock.patch('put.IntentBuilder')
+@mock.patch('bot_builder.IntentBuilder')
 def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
         mocker):
     """ test_create_puts_bot"""
@@ -259,7 +259,7 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
 
         stubber.assert_no_pending_responses()
 
-@mock.patch('put.IntentBuilder')
+@mock.patch('bot_builder.IntentBuilder')
 def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, mocker):
     """ test_create_puts_bot"""
     lex = setup()
@@ -286,7 +286,7 @@ def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, moc
 
         stubber.assert_no_pending_responses()
 
-@mock.patch('put.IntentBuilder')
+@mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called(intent_builder,
                                   cfn_create_event,
                                   get_bot_response,
@@ -315,12 +315,12 @@ def test_create_put_intent_called(intent_builder,
 
         assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-                'farewell', LAMBDA_ARN, 
+                'farewell', LAMBDA_ARN,
                 ['farewell my friend'],
                 max_attempts=3,
                 plaintext={'confirmation': 'a farewell confirmation'})
 
-@mock.patch('put.IntentBuilder')
+@mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called_error_no_utterance(intent_builder,
                                   cfn_create_event,
                                   get_bot_response,
@@ -352,7 +352,7 @@ def test_create_put_intent_called_error_no_utterance(intent_builder,
 
         assert "Utterances missing in intents" in str(excinfo.value)
 
-@mock.patch('put.IntentBuilder')
+@mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, mocker):
     """ delete bot called test """
 
@@ -372,7 +372,7 @@ def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, m
 
         response = app.delete(cfn_delete_event, context, lex_sdk=lex)
 
-@mock.patch('put.IntentBuilder')
+@mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_response, mocker):
     """ delete bot does not fail test """
     lex = setup()
@@ -389,7 +389,7 @@ def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_res
         response = app.delete(cfn_delete_event, context, lex_sdk=lex)
 
 
-@mock.patch('put.IntentBuilder')
+@mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_response,
         mocker):
     lex = setup()
