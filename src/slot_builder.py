@@ -50,6 +50,15 @@ class SlotBuilder(LexHelper, object):
             if(self._in_use(ex)):
                 return False
 
+    def _in_use(self, ex):
+        func_name = 'delete_slot_type'
+        if ex.response['Error']['Code'] == 'ResourceInUseException':
+            self._logger.info('Lex %s call failed because resource' + \
+                    ' in use', func_name)
+            return True
+        return False
+
+
     def _slot_type_exists(self, name):
       try:
           get_response = self._lex_sdk.get_slot_type(name=name, version='$LATEST')
