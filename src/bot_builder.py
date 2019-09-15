@@ -9,6 +9,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from intent_builder import IntentBuilder
+from slot_builder import SlotBuilder
 from lex_helper import LexHelper
 
 class LexBotBuilder(LexHelper, object):
