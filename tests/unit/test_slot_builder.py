@@ -48,7 +48,6 @@ def put_slot_type_request(slot_name, synonyms=None):
 @pytest.fixture()
 def put_slot_type_response():
     return {
-
         "name": "greeting slot",
         'checksum': 'chksum',
         'createdDate': datetime(2019, 1, 1),
@@ -94,7 +93,7 @@ def monkeypatch_account(monkeypatch):
 def test_create_slot_type(put_slot_type_response,
         mocker, lex, monkeypatch):
     context = mock_context(mocker)
-    monkeypatch_account(monkeypatch)
+    #monkeypatch_account(monkeypatch)
 
     with Stubber(lex) as stubber:
         slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
