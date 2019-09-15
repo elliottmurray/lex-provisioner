@@ -50,26 +50,26 @@ def put_slot_type_response():
     return {
         "name": "greeting slot",
         'checksum': 'chksum',
-        'createdDate': datetime(2019, 1, 1),
         'description': 'slot type description',
         "enumerationValues": [
-        {
-         "synonyms": [ "string" ],
-         "value": "string"
-        }
+            {
+             "synonyms": [ "string" ],
+             "value": "string"
+            }
         ],
-        "lastUpdatedDate": datetime(2019, 1, 1),
         "valueSelectionStrategy": "ORIGINAL_VALUE",
         "version": '$LATEST'
     }
 
-def stub_intent_get(stubber, intent_name):
+def stub_slot_type_get(stubber, slot_type_name):
    stubber.add_response(
-     'get_intent', {'checksum': 'chksum'}, {'name':intent_name, 'version':
-                                         ANY})
-def stub_not_found_get_request(stubber):
+     'get_slot_type', {'checksum': 'chksum'},
+        {'name':slot_type_name,
+         'version': ANY})
+
+def stub_slot_type_not_found_get(stubber):
     """stub not found get request"""
-    stubber.add_client_error('get_intent', service_error_code='NotFoundException')
+    stubber.add_client_error('get_slot_type', service_error_code='NotFoundException')
 
 def stub_slot_type_creation(stubber, put_slot_type_response, put_slot_type_request):
     stubber.add_response(
@@ -93,7 +93,6 @@ def monkeypatch_account(monkeypatch):
 def test_create_slot_type(put_slot_type_response,
         mocker, lex, monkeypatch):
     context = mock_context(mocker)
-    #monkeypatch_account(monkeypatch)
 
     with Stubber(lex) as stubber:
         slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
@@ -101,6 +100,8 @@ def test_create_slot_type(put_slot_type_response,
                     'value': 'thin',
                     'synonyms':    ['skinny']
                 }]
+
+        stub_slot_type_not_found_get(stubber)
         stub_slot_type_creation(stubber, put_slot_type_response,
                 put_slot_type_request(SLOT_TYPE_NAME, synonyms=stub_values))
         synonyms = {'thin': ['skinny']}
@@ -109,36 +110,29 @@ def test_create_slot_type(put_slot_type_response,
 
         stubber.assert_no_pending_responses()
 
-def test_update_slot_type(put_intent_response, mocker,
-        lex, aws_lambda, monkeypatch):
+def test_update_slot_type(put_slot_type_response, mocker, lex):
     context = mock_context(mocker)
 
-    monkeypatch_account(monkeypatch)
-    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+    with Stubber(lex) as stubber:
+        slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
+        stub_values = [{
+            'value': 'thin',
+            'synonyms':    ['skinny']
+        }]
 
-        slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
-
-        plaintext = {
-            "confirmation": 'some confirmation message',
-            'rejection': 'rejection message',
-            'conclusion': 'concluded'
-        }
-        put_request = put_intent_request(BOT_NAME,
-                                          INTENT_NAME, UTTERANCES, plaintext=plaintext)
-        put_request.update(put_request_conclusion(plaintext))
+        put_request = put_slot_type_request(SLOT_TYPE_NAME, synonyms=stub_values)
         put_request.update({'checksum': 'chksum'})
-        stub_intent_get(stubber, INTENT_NAME)
 
-        stub_intent_creation(stubber, put_intent_response, put_request)
+        stub_slot_type_get(stubber, SLOT_TYPE_NAME)
+        stub_slot_type_creation(stubber, put_slot_type_response, put_request)
+        synonyms = {'thin': ['skinny']}
 
-        response = slot_builder.put_intent(BOT_NAME, INTENT_NAME,
-                UTTERANCES, plaintext=plaintext)
+        response = slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
 
         stubber.assert_no_pending_responses()
-        lambda_stubber.assert_no_pending_responses()
 
-        assert response['intentName'] == 'greeting'
-        assert response['intentVersion'] == '1'
+        assert response['name'] == 'greeting slot'
+        assert response['version'] == '$LATEST'
 
 def test_create_intent_conclusion_and_followUp_errors(put_intent_response, mocker,
         lex, aws_lambda, monkeypatch):

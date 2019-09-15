@@ -28,7 +28,32 @@ class SlotBuilder(LexHelper, object):
         for key in  synonyms.keys():
             enumeration.append({'value': key, 'synonyms': synonyms[key]})
 
-        return self._lex_sdk.put_slot_type(name=name, description=name,
-                enumerationValues=enumeration,
-                valueSelectionStrategy='ORIGINAL_VALUE')
+        exists, checksum = self._slot_type_exists(name)
+
+        if(exists):
+            return self._lex_sdk.put_slot_type(name=name, description=name,
+                    enumerationValues=enumeration, checksum=checksum,
+                    valueSelectionStrategy='ORIGINAL_VALUE')
+
+        else:
+            return self._lex_sdk.put_slot_type(name=name, description=name,
+                    enumerationValues=enumeration,
+                    valueSelectionStrategy='ORIGINAL_VALUE')
+
+    def _slot_type_exists(self, name):
+      try:
+          get_response = self._lex_sdk.get_slot_type(name=name, version='$LATEST')
+          self._logger.info(get_response)
+          checksum = get_response['checksum']
+
+          return True, checksum
+
+      except ClientError as ex:
+          if ex.response['Error']['Code'] == 'NotFoundException':
+              self._logger.info('Slot type %s not found', name)
+              return False, None
+
+          self._logger.error('Lex get_slot_tpe call failed')
+          raise
+
 
