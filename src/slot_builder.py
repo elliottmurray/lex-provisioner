@@ -43,10 +43,12 @@ class SlotBuilder(LexHelper, object):
     def delete_slot_type(self, name):
         try:
             self._lex_sdk.delete_slot_type(name=name)
+            return True
         except ClientError as ex:
-          if(self._not_found(ex, 'delete_slot_type')):
-              return False, None
-
+            if(self._not_found(ex, 'delete_slot_type')):
+                return True 
+            if(self._in_use(ex)):
+                return False
 
     def _slot_type_exists(self, name):
       try:

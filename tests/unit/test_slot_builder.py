@@ -141,13 +141,21 @@ def test_delete_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stub_slot_type_deletion(stubber, {}, delete_request)
 
-        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
+        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) == True
 
         stubber.assert_no_pending_responses()
 
-@pytest.mark.skip(reason="no way of currently testing this")
 def test_delete_not_found_slot_type(lex, mocker):
-    print("DD")
+    delete_request = {'name': SLOT_TYPE_NAME }
+
+    context = mock_context(mocker)
+    slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
+
+    with Stubber(lex) as stubber:
+        stubber.add_client_error('delete_slot_type', service_error_code='NotFoundException')
+
+        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) == True
+        stubber.assert_no_pending_responses()
 
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_delete_in_use_slot_type(lex, mocker):
