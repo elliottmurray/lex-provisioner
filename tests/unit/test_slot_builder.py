@@ -75,10 +75,9 @@ def stub_slot_type_creation(stubber, put_slot_type_response, put_slot_type_reque
     stubber.add_response(
         'put_slot_type', put_slot_type_response, put_slot_type_request)
 
-def stub_intent_deletion(stubber, delete_slot_response, delete_request):
-
+def stub_slot_type_deletion(stubber, delete_slot_response, delete_request):
     stubber.add_response(
-        'delete_slot', delete_slot_response, delete_request)
+        'delete_slot_type', delete_slot_response, delete_request)
 
 def mock_context(mocker):
     context = mocker.Mock()
@@ -130,51 +129,28 @@ def test_update_slot_type(put_slot_type_response, mocker, lex):
         response = slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
 
         stubber.assert_no_pending_responses()
-
         assert response['name'] == 'greeting slot'
         assert response['version'] == '$LATEST'
 
-def test_create_intent_conclusion_and_followUp_errors(put_intent_response, mocker,
-        lex, aws_lambda, monkeypatch):
-    context = mock_context(mocker)
-
-    monkeypatch_account(monkeypatch)
-    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
-        slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
-
-        plaintext = {
-            "confirmation": 'some confirmation message',
-            'rejection': 'rejection message',
-            'conclusion': 'the conclusion',
-            'followUpPrompt': 'follow up'
-        }
-
-        stub_not_found_get_request(stubber)
-        put_request = put_intent_request(BOT_NAME,
-                INTENT_NAME, UTTERANCES, plaintext=plaintext)
-        put_request.update(put_request_conclusion(plaintext))
-
-        stub_intent_creation(stubber, put_intent_response, put_request)
-
-        with pytest.raises(Exception) as excinfo:
-            slot_builder.put_intent(BOT_NAME, INTENT_NAME, UTTERANCES, plaintext=plaintext)
-
-        assert "Can not have conclusion and followUpPrompt" in str(excinfo.value)
-
-def test_delete_slot(lex, mocker, aws_lambda):
-    delete_intent_response, delete_request_1 = {}, {'name': INTENT_NAME}
-    delete_intent_response, delete_request_2 = {}, {'name': INTENT_NAME_2}
+def test_delete_slot_type(lex, mocker):
+    delete_request = {'name': SLOT_TYPE_NAME }
 
     context = mock_context(mocker)
-    slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
+    slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
 
-    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
-        stub_intent_get(stubber, INTENT_NAME)
-        stub_intent_deletion(stubber, delete_intent_response, delete_request_1)
-        stub_intent_get(stubber, INTENT_NAME_2)
-        stub_intent_deletion(stubber, delete_intent_response, delete_request_2)
+    with Stubber(lex) as stubber:
+        stub_slot_type_deletion(stubber, {}, delete_request)
 
-        slot_builder.delete_intents([INTENT_NAME, INTENT_NAME_2])
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
 
         stubber.assert_no_pending_responses()
+
+@pytest.mark.skip(reason="no way of currently testing this")
+def test_delete_not_found_slot_type(lex, mocker):
+    print("DD")
+
+@pytest.mark.skip(reason="no way of currently testing this")
+def test_delete_in_use_slot_type(lex, mocker):
+    print("DD")
+
 

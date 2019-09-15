@@ -40,6 +40,14 @@ class SlotBuilder(LexHelper, object):
                     enumerationValues=enumeration,
                     valueSelectionStrategy='ORIGINAL_VALUE')
 
+    def delete_slot_type(self, name):
+        try:
+            self._lex_sdk.delete_slot_type(name=name)
+        except ClientError as ex:
+          if(self._not_found(ex, 'delete_slot_type')):
+              return False, None
+
+
     def _slot_type_exists(self, name):
       try:
           get_response = self._lex_sdk.get_slot_type(name=name, version='$LATEST')
@@ -49,8 +57,7 @@ class SlotBuilder(LexHelper, object):
           return True, checksum
 
       except ClientError as ex:
-          if ex.response['Error']['Code'] == 'NotFoundException':
-              self._logger.info('Slot type %s not found', name)
+          if(self._not_found(ex, 'get_slot_type')):
               return False, None
 
           self._logger.error('Lex get_slot_tpe call failed')
