@@ -200,7 +200,7 @@ class LexBotBuilder(LexHelper, object):
         for intent_definition in intent_definitions:
             self._validate_intent(intent_definition)
             intent_name, codehook_arn, max_attempts = self._extract_intent_attributes(intent_definition)
-            slots = SlotBuilder().get_slots(intent_definition.get('slots'))
+            slots = SlotBuilder(self._logger, self._context).get_slots(intent_definition.get('slots'))
             intent_versions.append(
                 intent_builder.put_intent(bot_name, intent_name, codehook_arn,
                     intent_definition.get('Utterances'),
