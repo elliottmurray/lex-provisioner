@@ -20,13 +20,18 @@ class LexBotBuilder(LexHelper, object):
 
     """Create/Update different elements that make up a Lex bot"""
 
-    def __init__(self, logger, context, lex_sdk=None):
+    def __init__(self, logger, context, lex_sdk=None, intent_builder=None):
         self._logger = logger
         self._context = context
         if(lex_sdk == None):
             self._lex_sdk = self._get_lex_sdk()
         else:
             self._lex_sdk = lex_sdk
+        if(intent_builder == None):
+
+            self._intent_builder = IntentBuilder(self._logger, self._context, lex_sdk=self._lex_sdk)
+        else:
+            self._intent_builder = intent_builder
 
     def _replace_intent_version(self, bot_definition, intents):
         for intent in bot_definition['intents']:
@@ -195,14 +200,13 @@ class LexBotBuilder(LexHelper, object):
 
 
     def _put_intents(self, bot_name, intent_definitions):
-        intent_builder = IntentBuilder(self._logger, self._context, lex_sdk=self._lex_sdk)
         intent_versions = []
         for intent_definition in intent_definitions:
             self._validate_intent(intent_definition)
             intent_name, codehook_arn, max_attempts = self._extract_intent_attributes(intent_definition)
             slots = SlotBuilder(self._logger, self._context).get_slots(intent_definition.get('slots'))
             intent_versions.append(
-                intent_builder.put_intent(bot_name, intent_name, codehook_arn,
+                self._intent_builder.put_intent(bot_name, intent_name, codehook_arn,
                     intent_definition.get('Utterances'),
                     max_attempts=max_attempts,
                     plaintext=intent_definition.get('Plaintext')
@@ -212,11 +216,10 @@ class LexBotBuilder(LexHelper, object):
         return intent_versions
 
     def _delete_intents(self, bot_name, intent_definitions):
-        intent_builder = IntentBuilder(self._logger, self._context, lex_sdk=self._lex_sdk)
         intent_names = [intent.get('Name') for intent in intent_definitions]
 
         self._logger.info(intent_names)
-        intent_builder.delete_intents(intent_names)
+        self._intent_builder.delete_intents(intent_names)
 
 
     def _delete_bot(self, bot_name):
