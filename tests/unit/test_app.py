@@ -231,14 +231,61 @@ def mock_context(mocker):
         context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
         return context
 
+
+def test_create_puts_no_prefix(cfn_create_event, put_bot_response, mocker, monkeypatch) :
+    """ test_create_puts_bot"""
+    lex = setup()
+    context = mock_context(mocker)
+    cfn_create_event['ResourceProperties'].pop('NamePrefix')
+    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
+
+    builder = mocker.Mock()
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    monkeypatch.setattr(app, "lex_builder_instance2", builder_bot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    builder.put.assert_called_once_with('LexBot',
+            cfn_create_event['ResourceProperties'])
+
+    assert response['BotName'] == 'LexBot'
+    assert response['BotVersion'] == BOT_VERSION
+
+
+def test_create_puts(cfn_create_event, put_bot_response, mocker, monkeypatch) :
+    """ test_create_puts_bot"""
+    lex = setup()
+    context = mock_context(mocker)
+    bot_props = cfn_create_event['ResourceProperties']
+
+    builder = mocker.Mock()
+    builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    monkeypatch.setattr(app, "lex_builder_instance2", builder_bot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    builder.put.assert_called_once_with(BOT_NAME,
+            cfn_create_event['ResourceProperties'])
+
+    assert response['BotName'] == BOT_NAME
+    assert response['BotVersion'] == BOT_VERSION
+
 @mock.patch('bot_builder.IntentBuilder')
-def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
+def test_create_delete(intent_builder, cfn_delete_event, put_bot_response,
         mocker):
     """ test_create_puts_bot"""
     lex = setup()
-    bot_props = cfn_create_event['ResourceProperties']
+    bot_props = cfn_delete_event['ResourceProperties']
 
-    expected_put_params = put_bot_request(BOT_NAME, bot_props, put_bot_response)
+    expected_delete_params = delete_bot_request(BOT_NAME, bot_props, put_bot_response)
 
     create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
 
@@ -247,13 +294,13 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
 
         stub_not_found_get_request(stubber)
 
-        stubber.add_response('put_bot', put_bot_response, expected_put_params)
+        stubber.add_response('delete_bot', put_bot_response, expected_delete_params)
 
         stubber.add_response('create_bot_version',
                              create_bot_version_response, create_bot_version_params)
         context = mock_context(mocker)
 
-        response = app.create(cfn_create_event, context, lex_sdk=lex)
+        response = app.delete(cfn_delete_event, context, lex_sdk=lex)
         assert response['BotName'] == BOT_NAME
         assert response['BotVersion'] == BOT_VERSION
 

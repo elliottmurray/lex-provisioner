@@ -111,26 +111,38 @@ def _lex_builder_instance(event, context):
 
     return lex_definition_with_prefix, LexBotBuilder(logger)
 
-def create(event, context, lex_sdk=None):
+def lex_builder_instance2(event, context):
+    """Creates an instance of LexBotBuilder"""
+    print("should not be here")
+    return LexBotBuilder(logger, context)
+
+ 
+def create(event, context):
     """
     Handle Create events
 
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    lex_bot_builder = LexBotBuilder(logger, context, lex_sdk)
+    lex_bot_builder = lex_builder_instance2(event, context)
     resource_properties = event.get('ResourceProperties')
     name_prefix = resource_properties.get('NamePrefix')
+    print(name_prefix)
+    name_prefix = "" if (name_prefix == None) else name_prefix
+    print("!!!!")
+    print(name_prefix)
     bot_name = name_prefix + event['LogicalResourceId']
+    print(bot_name)
+
     bot_put_response = lex_bot_builder.put(bot_name, resource_properties)
 
+    print(bot_put_response)
     response_data = dict(
         BotName=bot_put_response['name'],
         BotVersion=bot_put_response['version']
     )
 
     return response_data
-
 
 def update(event, context):
     """
@@ -150,14 +162,14 @@ def update(event, context):
     return response_data
 
 
-def delete(event, context, lex_sdk=None):
+def delete(event, context):
     """
     Handle Delete events
 
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    lex_bot_builder = LexBotBuilder(logger, context, lex_sdk)
+    lex_bot_builder = LexBotBuilder(logger, context)
     resource_properties = event.get('ResourceProperties')
     name_prefix = resource_properties.get('NamePrefix')
     bot_name = name_prefix + event['LogicalResourceId']
