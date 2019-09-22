@@ -52,5 +52,5 @@ jobs:
 
       - store_artifacts:
           path: test-reports
-          destination: test-reports:w
+          destination: test-reports
 
