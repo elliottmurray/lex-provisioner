@@ -117,40 +117,6 @@ def _get_bot_response():
     }
 
 
-@pytest.fixture()
-def put_bot_response():
-    """ put bot response """
-    return {
-        "name": "test bot",
-        "locale": 'en-US',
-        "checksum": 'rnd value',
-        "abortStatement": {
-            "messages": [
-                {
-                    "content": "I'm sorry, but I am having trouble understanding. I'm going to pass you over to one of my team mates (they're human!). Please wait to be connected, they will have any information we have discussed.",
-                    "contentType": "PlainText"
-                }
-            ]
-        },
-        "childDirected": True,
-        "clarificationPrompt": {
-            "maxAttempts": 1,
-            "messages": [
-                {
-                    "content": "Hmm, I am sorry but I am still learning and I'm not familiar with those words. Could you try again using different words?",
-                    "contentType": "PlainText"
-                }
-            ],
-            "responseCard": "string"
-        },
-        "createdDate": 10012019,
-        "description": "friendly AI chatbot overlord",
-        "failureReason": "a failure",
-        "idleSessionTTLInSeconds": 300,
-        "status": "READY",
-        "version": "$LATEST"
-    }
-
 def put_bot_request(bot_name, bot_props, put_bot_response, has_checksum=False):
     """ put bot request """
 
@@ -232,7 +198,7 @@ def mock_context(mocker):
         return context
 
 
-def test_create_puts_no_prefix(cfn_create_event, put_bot_response, mocker, monkeypatch) :
+def test_create_puts_no_prefix(cfn_create_event, mocker, monkeypatch) :
     """ test_create_puts_bot"""
     lex = setup()
     context = mock_context(mocker)
@@ -245,7 +211,7 @@ def test_create_puts_no_prefix(cfn_create_event, put_bot_response, mocker, monke
     def builder_bot_stub(event, context):
         return builder
 
-    monkeypatch.setattr(app, "lex_builder_instance2", builder_bot_stub)
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
 
     response = app.create(cfn_create_event, context)
 
@@ -256,11 +222,10 @@ def test_create_puts_no_prefix(cfn_create_event, put_bot_response, mocker, monke
     assert response['BotVersion'] == BOT_VERSION
 
 
-def test_create_puts(cfn_create_event, put_bot_response, mocker, monkeypatch) :
+def test_create_puts(cfn_create_event, mocker, monkeypatch):
     """ test_create_puts_bot"""
     lex = setup()
     context = mock_context(mocker)
-    bot_props = cfn_create_event['ResourceProperties']
 
     builder = mocker.Mock()
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
@@ -268,7 +233,7 @@ def test_create_puts(cfn_create_event, put_bot_response, mocker, monkeypatch) :
     def builder_bot_stub(event, context):
         return builder
 
-    monkeypatch.setattr(app, "lex_builder_instance2", builder_bot_stub)
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
 
     response = app.create(cfn_create_event, context)
 
@@ -278,31 +243,21 @@ def test_create_puts(cfn_create_event, put_bot_response, mocker, monkeypatch) :
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
-@mock.patch('bot_builder.IntentBuilder')
-def test_create_delete(intent_builder, cfn_delete_event, put_bot_response,
-        mocker):
+def test_delete(cfn_delete_event, mocker, monkeypatch):
     """ test_create_puts_bot"""
     lex = setup()
-    bot_props = cfn_delete_event['ResourceProperties']
+    context = mock_context(mocker)
 
-    expected_delete_params = delete_bot_request(BOT_NAME, bot_props, put_bot_response)
+    builder = mocker.Mock()
 
-    create_bot_version_response, create_bot_version_params = put_bot_version_interaction(BOT_NAME, BOT_VERSION)
+    builder.delete.return_value = None 
+    def builder_bot_stub(event, context):
+        return builder
 
-    with Stubber(lex) as stubber:
-        intent_builder_instance = stub_put_intent(intent_builder)
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
 
-        stub_not_found_get_request(stubber)
+    app.delete(cfn_delete_event, context)
 
-        stubber.add_response('delete_bot', put_bot_response, expected_delete_params)
-
-        stubber.add_response('create_bot_version',
-                             create_bot_version_response, create_bot_version_params)
-        context = mock_context(mocker)
-
-        response = app.delete(cfn_delete_event, context, lex_sdk=lex)
-        assert response['BotName'] == BOT_NAME
-        assert response['BotVersion'] == BOT_VERSION
-
-        stubber.assert_no_pending_responses()
+    builder.delete.assert_called_once_with(BOT_NAME,
+            cfn_delete_event['ResourceProperties'])
 
