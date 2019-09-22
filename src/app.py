@@ -115,6 +115,12 @@ def lex_builder_instance(event, context):
     """Creates an instance of LexBotBuilder"""
     return LexBotBuilder(logger, context)
 
+def _bot_name(event):
+    resource_properties = event.get('ResourceProperties')
+    name_prefix = resource_properties.get('NamePrefix')
+    name_prefix = "" if (name_prefix == None) else name_prefix
+    return name_prefix + event['LogicalResourceId']
+
 def create(event, context):
     """
     Handle Create events
@@ -124,11 +130,9 @@ def create(event, context):
     """
     lex_bot_builder = lex_builder_instance(event, context)
     resource_properties = event.get('ResourceProperties')
-    name_prefix = resource_properties.get('NamePrefix')
-    name_prefix = "" if (name_prefix == None) else name_prefix
-    bot_name = name_prefix + event['LogicalResourceId']
 
-    bot_put_response = lex_bot_builder.put(bot_name, resource_properties)
+    bot_put_response = lex_bot_builder.put(_bot_name(event),
+            event.get('ResourceProperties'))
 
     response_data = dict(
         BotName=bot_put_response['name'],
@@ -144,16 +148,7 @@ def update(event, context):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    lex_definition, lex_bot_builder = _lex_builder_instance(event, context)
-
-    bot_put_response = lex_bot_builder.put(lex_definition)
-    response_data = dict(
-        BotName=lex_definition['bot']['name'],
-        BotVersion=bot_put_response['version']
-    )
-
-    return response_data
-
+    return create(event, context)
 
 def delete(event, context):
     """
@@ -163,10 +158,9 @@ def delete(event, context):
     the exception message will be sent to CloudFormation Events.
     """
     lex_bot_builder = lex_builder_instance(event, context)
-    resource_properties = event.get('ResourceProperties')
-    name_prefix = resource_properties.get('NamePrefix')
-    bot_name = name_prefix + event['LogicalResourceId']
-    lex_bot_builder.delete(bot_name, resource_properties)
+    lex_bot_builder.delete(_bot_name(event),
+            event.get('ResourceProperties'))
+
 
 def lambda_handler(event, context):
     """

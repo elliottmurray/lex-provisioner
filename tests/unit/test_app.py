@@ -243,14 +243,59 @@ def test_create_puts(cfn_create_event, mocker, monkeypatch):
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
+def test_update_puts_no_prefix(cfn_create_event, mocker, monkeypatch) :
+    """ test_update_puts_bot"""
+    lex = setup()
+    context = mock_context(mocker)
+    cfn_create_event['ResourceProperties'].pop('NamePrefix')
+    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
+
+    builder = mocker.Mock()
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    builder.put.assert_called_once_with('LexBot',
+            cfn_create_event['ResourceProperties'])
+
+    assert response['BotName'] == 'LexBot'
+    assert response['BotVersion'] == BOT_VERSION
+
+
+def test_update_puts(cfn_create_event, mocker, monkeypatch):
+    """ test_update_puts_bot"""
+    lex = setup()
+    context = mock_context(mocker)
+
+    builder = mocker.Mock()
+    builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    builder.put.assert_called_once_with(BOT_NAME,
+            cfn_create_event['ResourceProperties'])
+
+    assert response['BotName'] == BOT_NAME
+    assert response['BotVersion'] == BOT_VERSION
+
 def test_delete(cfn_delete_event, mocker, monkeypatch):
-    """ test_create_puts_bot"""
+    """ test_delete """
     lex = setup()
     context = mock_context(mocker)
 
     builder = mocker.Mock()
 
-    builder.delete.return_value = None 
+    builder.delete.return_value = None
     def builder_bot_stub(event, context):
         return builder
 
@@ -260,4 +305,25 @@ def test_delete(cfn_delete_event, mocker, monkeypatch):
 
     builder.delete.assert_called_once_with(BOT_NAME,
             cfn_delete_event['ResourceProperties'])
+
+def test_delete_no_prefix(cfn_delete_event, mocker, monkeypatch) :
+    """ test_delete_no_prefix """
+    lex = setup()
+    context = mock_context(mocker)
+    cfn_delete_event['ResourceProperties'].pop('NamePrefix')
+    cfn_delete_event['ResourceProperties']['name'] = 'LexBot'
+
+    builder = mocker.Mock()
+
+    builder.delete.return_value = None
+    def builder_bot_stub(event, context):
+        return builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+
+    app.delete(cfn_delete_event, context)
+
+    builder.delete.assert_called_once_with("LexBot",
+            cfn_delete_event['ResourceProperties'])
+
 
