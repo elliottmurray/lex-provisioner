@@ -54,6 +54,9 @@ jobs:
             #          destination: test-reports
             #
       - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      - run:
           name: deploy to AWS
           command: |
             bin/delete
