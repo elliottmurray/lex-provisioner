@@ -53,3 +53,9 @@ jobs:
             #          path: test-reports
             #          destination: test-reports
             #
+      - run:
+          name: deploy to AWS
+          command: |
+            bin/delete
+            bin/deploy
+
