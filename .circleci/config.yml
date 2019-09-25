@@ -2,7 +2,7 @@
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
@@ -18,11 +18,11 @@ jobs:
       - checkout
 
       # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+      #      - restore_cache:
+      #          keys:
+      #            - v1-dependencies-{{ checksum "requirements.txt" }}
+      #            # fallback to using the latest cache if no exact match is found
+      #            - v1-dependencies-
 
       - run:
           name: run tests
@@ -33,57 +33,41 @@ jobs:
             tox
             # pip install -r requirements.txt
 
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
+            #      - save_cache:
+            #          paths:
+            #            - ./venv
+            #          key: v1-dependencies-{{ checksum "requirements.txt" }}
 
-      # run tests!
-      # this example uses Django's built-in test-runner
-      # other common Python testing frameworks include pytest and nose
-      # https://pytest.org
-      # https://nose.readthedocs.io
-      #      - run:
-      #          name: run tests
-      #          command: |
-      #            . venv/bin/activate
-      #            tox
-
-            #      - store_artifacts:
-            #          path: test-reports
-            #          destination: test-reports
-            #
   deploy:
-    docker:
-      - image: circleci/python:3.7
+    executor: aws-serverless/default
+
     steps:
       - checkout
-
+      - aws-serverless/install
       # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+      #      - restore_cache:
+      #          keys:
+      #            - v1-dependencies-{{ checksum "requirements.txt" }}
+      #            # fallback to using the latest cache if no exact match is found
+      #            - v1-dependencies-
 
-      - run:
-          name: Install awscli
-          command: sudo pip install awscli
       - run:
           name: deploy to AWS
           command: |
             bin/delete lex-provisioner
             bin/deploy lex-provisioner
-
+orbs:
+  aws-serverless: circleci/aws-serverless@1.0.1
 workflows:
   version: 2
   build-deploy:
     jobs:
       - build
       - deploy:
+          context: aws_lex
           requires:
             - build
           filters:
             branches:
-              only: master
+              only: master 
 
