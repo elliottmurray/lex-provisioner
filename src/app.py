@@ -6,6 +6,7 @@ import os
 import json
 import crhelper
 from bot_builder import LexBotBuilder
+from slot_builder import SlotBuilder
 
 # initialise logger
 logger = crhelper.log_config({"RequestId": "CONTAINER_INIT"})
@@ -19,15 +20,6 @@ try:
 except Exception as ex:
     logger.error(ex, exc_info=True)
     init_failed = ex
-
-
-LEX_DEFINITION_FILENAME = 'lex-definition.json'
-def _read_lex_definition_file(file_name=LEX_DEFINITION_FILENAME):
-    """Reads lex definition file (json) which is packaged in the same directory"""
-    with open(file_name) as lex_json_file:
-        lex_definition = json.load(lex_json_file)
-    logger.info('successfully read bot definition from file: %s', file_name)
-    return lex_definition
 
 def _get_function_arn(function_name, aws_region, aws_account_id, prefix):
     return 'arn:aws:lambda:' + aws_region + ':' + aws_account_id \
@@ -94,32 +86,24 @@ def _add_prefix(lex_definition, name_prefix, aws_region, aws_account_id):
         slot_types=slot_types
     )
 
-def _lex_builder_instance(event, context):
-    """Creates an instance of LexBotBuilder"""
-    lex_definition = _read_lex_definition_file()
-    resource_properties = event.get('ResourceProperties')
-
-    name_prefix = resource_properties.get('NamePrefix')
-    dialog_codehook = resource_properties.get('dialogCodeHookUri')
-
-    logger.info('name prefix is: %s', name_prefix)
-    aws_account_id = context.invoked_function_arn.split(':')[4]
-    aws_region = os.environ['AWS_REGION']
-
-    lex_definition_with_prefix = _add_prefix(lex_definition, name_prefix, aws_region, aws_account_id)
-    logger.info('lex definition with prefix: %s', lex_definition_with_prefix)
-
-    return lex_definition_with_prefix, LexBotBuilder(logger)
-
 def lex_builder_instance(event, context):
     """Creates an instance of LexBotBuilder"""
     return LexBotBuilder(logger, context)
 
-def _bot_name(event):
+def slot_builder_instance(context):
+    """Creates an instance of SlotBuilder"""
+    return SlotBuilder(logger, context)
+
+def _name_prefix(event):
     resource_properties = event.get('ResourceProperties')
     name_prefix = resource_properties.get('NamePrefix')
-    name_prefix = "" if (name_prefix == None) else name_prefix
-    return name_prefix + event['LogicalResourceId']
+    return  "" if (name_prefix == None) else name_prefix
+
+def _bot_name(event):
+    return _name_prefix(event) + event['LogicalResourceId']
+
+def _slot_type_name(event, slot_type):
+    return _name_prefix(event) + slot_type.get('Name')
 
 def create(event, context):
     """
@@ -128,8 +112,14 @@ def create(event, context):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
+    slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(event, context)
-    resource_properties = event.get('ResourceProperties')
+    slot_types = event.get('ResourceProperties').get('slotTypes')
+    slot_types = [] if slot_types == None else slot_types
+
+    for slot_type in slot_types:
+        name = _slot_type_name(event, slot_type)
+        slot_builder.put_slot_type(name, slot_type.get('Values'))
 
     bot_put_response = lex_bot_builder.put(_bot_name(event),
             event.get('ResourceProperties'))

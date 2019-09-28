@@ -62,6 +62,9 @@ def cfn_event(event_type):
                     }
                 }
             ],
+            "slotTypes":[
+                {"Name": 'pizzatype', "Values": ['thin', 'thick']}
+            ],
             },
         "ResourceType": "Custom::LexBot",
         "ResponseURL": "https://cloudformation-custom-resource-response-useast1.s3.amazonaws.com/arn%3Aaws%3Acloudformation%3Aus-east-1%3A773592622512%3Astack/elliott-test/db2706d0-2683-11e9-a40a-0a515b01a4a4%7CLexBot%7C23f87176-6197-429a-8fb7-890346bde9dc?AWSAccessKeyId=AKIAJRWMYHFMH4DNUF2Q&Expires=1549075566&Signature=9%2FbjkIyX35f7NRCbdrgIOvbmVes%3D",
@@ -167,9 +170,15 @@ def put_bot_version_interaction(bot_name, bot_version):
     }
     return create_bot_version_response, create_bot_version_params
 
-def setup():
+@pytest.fixture
+def setup(mocker):
     """ setup function """
-    return  botocore.session.get_session().create_client('lex-models')
+    lex = botocore.session.get_session().create_client('lex-models')
+    context = mock_context(mocker)
+    builder = mocker.Mock()
+    slot_builder = mocker.Mock()
+
+    return lex, context, builder, slot_builder
 
 def stub_not_found_get_request(stubber):
     """stub not found get request"""
@@ -197,15 +206,102 @@ def mock_context(mocker):
         context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
         return context
 
-
-def test_create_puts_no_prefix(cfn_create_event, mocker, monkeypatch) :
+def test_create_put_bot_no_prefix(cfn_create_event, setup, monkeypatch) :
     """ test_create_puts_bot"""
-    lex = setup()
-    context = mock_context(mocker)
+    lex, context, builder, _ = setup
+
+    cfn_create_event['ResourceProperties'].pop('NamePrefix')
+    cfn_create_event['ResourceProperties'].pop('slotTypes')
+    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
+
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    builder.put.assert_called_once_with('LexBot',
+            cfn_create_event['ResourceProperties'])
+
+    assert response['BotName'] == 'LexBot'
+    assert response['BotVersion'] == BOT_VERSION
+
+def test_create_put_slottypes_no_prefix(cfn_create_event, setup, monkeypatch) :
+    """ test_create_put_slottypes_no_prefix"""
+    lex, context, builder, slot_builder = setup
     cfn_create_event['ResourceProperties'].pop('NamePrefix')
     cfn_create_event['ResourceProperties']['name'] = 'LexBot'
 
-    builder = mocker.Mock()
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST' }
+
+    slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    def builder_slot_stub(context):
+        return slot_builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    slot_builder.put_slot_type.assert_called_once_with('pizzatype', ['thin', 'thick'])
+    assert response['BotName'] == 'LexBot'
+
+def test_create_puts(cfn_create_event, setup, monkeypatch):
+    """ test_create_puts_bot"""
+    lex, context, builder, _ = setup
+
+    cfn_create_event['ResourceProperties'].pop('slotTypes')
+    builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    builder.put.assert_called_once_with(BOT_NAME,
+            cfn_create_event['ResourceProperties'])
+
+    assert response['BotName'] == BOT_NAME
+    assert response['BotVersion'] == BOT_VERSION
+
+def test_create_put_slottypes_(cfn_create_event, setup, monkeypatch) :
+    """ test_create_put_slottypes_"""
+    lex, context, builder, slot_builder = setup
+
+    builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
+
+    slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    def builder_slot_stub(context):
+        return slot_builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzatype', ['thin', 'thick'])
+    assert response['BotName'] == BOT_NAME 
+
+def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch) :
+    """ test_update_puts_bot"""
+    lex, context, builder, _ = setup
+    cfn_create_event['ResourceProperties'].pop('NamePrefix')
+    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
+    cfn_create_event['ResourceProperties'].pop('slotTypes')
+
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST' }
 
     def builder_bot_stub(event, context):
@@ -222,12 +318,11 @@ def test_create_puts_no_prefix(cfn_create_event, mocker, monkeypatch) :
     assert response['BotVersion'] == BOT_VERSION
 
 
-def test_create_puts(cfn_create_event, mocker, monkeypatch):
-    """ test_create_puts_bot"""
-    lex = setup()
-    context = mock_context(mocker)
+def test_update_puts(cfn_create_event, setup, monkeypatch):
+    """ test_update_puts_bot"""
+    lex, context, builder, _ = setup
 
-    builder = mocker.Mock()
+    cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
 
     def builder_bot_stub(event, context):
@@ -243,57 +338,9 @@ def test_create_puts(cfn_create_event, mocker, monkeypatch):
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
-def test_update_puts_no_prefix(cfn_create_event, mocker, monkeypatch) :
-    """ test_update_puts_bot"""
-    lex = setup()
-    context = mock_context(mocker)
-    cfn_create_event['ResourceProperties'].pop('NamePrefix')
-    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
-
-    builder = mocker.Mock()
-    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST' }
-
-    def builder_bot_stub(event, context):
-        return builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
-
-    response = app.create(cfn_create_event, context)
-
-    builder.put.assert_called_once_with('LexBot',
-            cfn_create_event['ResourceProperties'])
-
-    assert response['BotName'] == 'LexBot'
-    assert response['BotVersion'] == BOT_VERSION
-
-
-def test_update_puts(cfn_create_event, mocker, monkeypatch):
-    """ test_update_puts_bot"""
-    lex = setup()
-    context = mock_context(mocker)
-
-    builder = mocker.Mock()
-    builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
-
-    def builder_bot_stub(event, context):
-        return builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
-
-    response = app.create(cfn_create_event, context)
-
-    builder.put.assert_called_once_with(BOT_NAME,
-            cfn_create_event['ResourceProperties'])
-
-    assert response['BotName'] == BOT_NAME
-    assert response['BotVersion'] == BOT_VERSION
-
-def test_delete(cfn_delete_event, mocker, monkeypatch):
+def test_delete(cfn_delete_event, setup, monkeypatch):
     """ test_delete """
-    lex = setup()
-    context = mock_context(mocker)
-
-    builder = mocker.Mock()
+    lex, context, builder, _ = setup
 
     builder.delete.return_value = None
     def builder_bot_stub(event, context):
@@ -306,14 +353,11 @@ def test_delete(cfn_delete_event, mocker, monkeypatch):
     builder.delete.assert_called_once_with(BOT_NAME,
             cfn_delete_event['ResourceProperties'])
 
-def test_delete_no_prefix(cfn_delete_event, mocker, monkeypatch) :
+def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch) :
     """ test_delete_no_prefix """
-    lex = setup()
-    context = mock_context(mocker)
+    lex, context, builder, _ = setup
     cfn_delete_event['ResourceProperties'].pop('NamePrefix')
     cfn_delete_event['ResourceProperties']['name'] = 'LexBot'
-
-    builder = mocker.Mock()
 
     builder.delete.return_value = None
     def builder_bot_stub(event, context):
