@@ -273,6 +273,28 @@ def test_create_puts(cfn_create_event, setup, monkeypatch):
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
+def test_create_put_slottypes_(cfn_create_event, setup, monkeypatch) :
+    """ test_create_put_slottypes_"""
+    lex, context, builder, slot_builder = setup
+
+    builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST' }
+
+    slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST' }
+
+    def builder_bot_stub(event, context):
+        return builder
+
+    def builder_slot_stub(context):
+        return slot_builder
+
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+
+    response = app.create(cfn_create_event, context)
+
+    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzatype', ['thin', 'thick'])
+    assert response['BotName'] == BOT_NAME 
+
 def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch) :
     """ test_update_puts_bot"""
     lex, context, builder, _ = setup

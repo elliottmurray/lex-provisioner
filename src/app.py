@@ -94,11 +94,16 @@ def slot_builder_instance(context):
     """Creates an instance of SlotBuilder"""
     return SlotBuilder(logger, context)
 
-def _bot_name(event):
+def _name_prefix(event):
     resource_properties = event.get('ResourceProperties')
     name_prefix = resource_properties.get('NamePrefix')
-    name_prefix = "" if (name_prefix == None) else name_prefix
-    return name_prefix + event['LogicalResourceId']
+    return  "" if (name_prefix == None) else name_prefix
+
+def _bot_name(event):
+    return _name_prefix(event) + event['LogicalResourceId']
+
+def _slot_type_name(event, slot_type):
+    return _name_prefix(event) + slot_type.get('Name')
 
 def create(event, context):
     """
@@ -109,16 +114,12 @@ def create(event, context):
     """
     slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(event, context)
-    resource_properties = event.get('ResourceProperties')
-    slot_types = resource_properties.get('slotTypes')
+    slot_types = event.get('ResourceProperties').get('slotTypes')
     slot_types = [] if slot_types == None else slot_types
 
-    print(slot_types)
-
     for slot_type in slot_types:
-        name = slot_type.get('Name')
-        synonyms = slot_type.get('Values')
-        slot_builder.put_slot_type(name, synonyms)
+        name = _slot_type_name(event, slot_type)
+        slot_builder.put_slot_type(name, slot_type.get('Values'))
 
     bot_put_response = lex_bot_builder.put(_bot_name(event),
             event.get('ResourceProperties'))
