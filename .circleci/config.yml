@@ -31,8 +31,8 @@ jobs:
             . venv/bin/activate
             pip install tox
             tox
-      - store_test_results:
-          path: ./htmlcov 
+      - store_artifacts:
+          path: htmlcov 
             #      - save_cache:
             #          paths:
             #            - ./venv
