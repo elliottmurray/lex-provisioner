@@ -1,44 +1,45 @@
-import mock
-import pytest
-from pytest_mock import mocker
+""" slot builder test """
+# pylint: disable=missing-function-docstring, redefined-outer-name
 from unittest.mock import Mock
+import pytest
+#from pytest_mock import mocker
 import botocore.session
 from botocore.stub import Stubber, ANY
-from datetime import datetime
-#import datetime
 
-from utils import ValidationError
+# pylint: disable=import-error
 from slot_builder import SlotBuilder
 from lex_helper import LexHelper
+# pylint: enable=import-error
 
-aws_region = 'us-east-1'
-aws_account_id = '1234567789'
-
+AWS_REGION = 'us-east-1'
+AWS_ACCOUNT_ID = '1234567789'
 SLOT_TYPE_NAME = 'colours'
 
 @pytest.fixture()
 def lex():
+    """ return lex model instance"""
     return botocore.session.get_session().create_client('lex-models')
 
 @pytest.fixture()
 def aws_lambda():
+    """ return lambda instance"""
     return botocore.session.get_session().create_client('lambda')
 
 def put_slot_type_request(slot_name, synonyms=None):
-
+    """ put slot type request"""
     put_request = {
-      'name': slot_name,
-      'description': slot_name,
-      'valueSelectionStrategy': "ORIGINAL_VALUE"
+        'name': slot_name,
+        'description': slot_name,
+        'valueSelectionStrategy': "ORIGINAL_VALUE"
     }
 
-    if(synonyms == None):
+    if synonyms is None:
         synonyms = [
-              {
-                  "synonyms": [ "pyslot", "junitslot" ],
-                  "value": "pyslot"
-              }
-          ]
+            {
+                "synonyms": ["pyslot", "junitslot"],
+                "value": "pyslot"
+            }
+        ]
 
     put_request.update({"enumerationValues": synonyms})
 
@@ -47,14 +48,15 @@ def put_slot_type_request(slot_name, synonyms=None):
 
 @pytest.fixture()
 def put_slot_type_response():
+    """ put slot type response"""
     return {
         "name": "greeting slot",
         'checksum': 'chksum',
         'description': 'slot type description',
         "enumerationValues": [
             {
-             "synonyms": [ "string" ],
-             "value": "string"
+                "synonyms": ["string"],
+                "value": "string"
             }
         ],
         "valueSelectionStrategy": "ORIGINAL_VALUE",
@@ -62,8 +64,9 @@ def put_slot_type_response():
     }
 
 def stub_slot_type_get(stubber, slot_type_name):
-   stubber.add_response(
-     'get_slot_type', {'checksum': 'chksum'},
+    """ stub_slot_type_get"""
+    stubber.add_response(
+        'get_slot_type', {'checksum': 'chksum'},
         {'name':slot_type_name,
          'version': ANY})
 
@@ -72,10 +75,12 @@ def stub_slot_type_not_found_get(stubber):
     stubber.add_client_error('get_slot_type', service_error_code='NotFoundException')
 
 def stub_slot_type_creation(stubber, put_slot_type_response, put_slot_type_request):
+    """stub_slot_type_creation"""
     stubber.add_response(
         'put_slot_type', put_slot_type_response, put_slot_type_request)
 
 def stub_slot_type_deletion(stubber, delete_slot_response, delete_request):
+    """stub_slot_type_deletion"""
     stubber.add_response(
         'delete_slot_type', delete_slot_response, delete_request)
 
@@ -86,23 +91,22 @@ def mock_context(mocker):
 
 def monkeypatch_account(monkeypatch):
     monkeypatch.setattr(LexHelper, '_get_aws_details', lambda x:
-            [aws_account_id, aws_region])
+                        [AWS_ACCOUNT_ID, AWS_REGION])
 
 
-def test_create_slot_type(put_slot_type_response,
-        mocker, lex, monkeypatch):
+def test_create_slot_type(put_slot_type_response, mocker, lex):
     context = mock_context(mocker)
 
     with Stubber(lex) as stubber:
         slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
         stub_values = [{
-                    'value': 'thin',
-                    'synonyms':    ['skinny']
-                }]
+            'value': 'thin',
+            'synonyms':    ['skinny']
+        }]
 
         stub_slot_type_not_found_get(stubber)
         stub_slot_type_creation(stubber, put_slot_type_response,
-                put_slot_type_request(SLOT_TYPE_NAME, synonyms=stub_values))
+                                put_slot_type_request(SLOT_TYPE_NAME, synonyms=stub_values))
         synonyms = {'thin': ['skinny']}
 
         slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
@@ -133,7 +137,7 @@ def test_update_slot_type(put_slot_type_response, mocker, lex):
         assert response['version'] == '$LATEST'
 
 def test_delete_slot_type(lex, mocker):
-    delete_request = {'name': SLOT_TYPE_NAME }
+    delete_request = {'name': SLOT_TYPE_NAME}
 
     context = mock_context(mocker)
     slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
@@ -141,32 +145,25 @@ def test_delete_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stub_slot_type_deletion(stubber, {}, delete_request)
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) == True
-
+        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is True
         stubber.assert_no_pending_responses()
 
 def test_delete_not_found_slot_type(lex, mocker):
-    delete_request = {'name': SLOT_TYPE_NAME }
-
     context = mock_context(mocker)
     slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
 
     with Stubber(lex) as stubber:
         stubber.add_client_error('delete_slot_type', service_error_code='NotFoundException')
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) == True
+        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is True
         stubber.assert_no_pending_responses()
 
 def test_delete_in_use_slot_type(lex, mocker):
-    delete_request = {'name': SLOT_TYPE_NAME }
-
     context = mock_context(mocker)
     slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
 
     with Stubber(lex) as stubber:
         stubber.add_client_error('delete_slot_type', service_error_code='ResourceInUseException')
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) == False
+        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is False
         stubber.assert_no_pending_responses()
-
-

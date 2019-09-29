@@ -146,7 +146,7 @@ def test_create_put_bot_no_prefix(cfn_create_event, setup, monkeypatch):
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -168,7 +168,7 @@ def test_create_put_slottypes_no_prefix(cfn_create_event, setup, monkeypatch):
 
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     def builder_slot_stub(context): # pylint: disable=unused-argument
@@ -189,7 +189,7 @@ def test_create_puts(cfn_create_event, setup, monkeypatch):
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -210,7 +210,7 @@ def test_create_put_slottypes_(cfn_create_event, setup, monkeypatch):
 
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     def builder_slot_stub(context): # pylint: disable=unused-argument
@@ -233,7 +233,7 @@ def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -254,7 +254,7 @@ def test_update_puts(cfn_create_event, setup, monkeypatch):
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -273,7 +273,7 @@ def test_delete(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.return_value = None
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -291,7 +291,7 @@ def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.return_value = None
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)

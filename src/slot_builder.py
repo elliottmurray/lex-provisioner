@@ -1,53 +1,56 @@
 #!/usr/bin/env python
+""" Provision AWS Lex resources using python SDK"""
 
-""" Provision AWS Lex resources using python SDK
-"""
-
-import traceback
-import time
-import boto3
 from botocore.exceptions import ClientError
 
-from intent_builder import IntentBuilder
+# pylint: disable=import-error
 from lex_helper import LexHelper
 
-class SlotBuilder(LexHelper, object):
+class SlotBuilder(LexHelper):
+    """ slot builder """
     def __init__(self, logger, context, lex_sdk=None):
         self._logger = logger
         self._context = context
-        if(lex_sdk == None):
+        if lex_sdk is None:
             self._lex_sdk = self._get_lex_sdk()
         else:
             self._lex_sdk = lex_sdk
 
+    # pylint: disable=no-self-use
     def get_slots(self, slot_definitions):
+        """ get slots """
+        print(slot_definitions)
         return {}
 
     def put_slot_type(self, name, synonyms):
+        """ put slot type by name and synonyms """
+
+        self._logger.info('Put slot type %s', name)
         enumeration = []
-        for key in  synonyms.keys():
-            enumeration.append({'value': key, 'synonyms': synonyms[key]})
+        for synonym in synonyms:
+            enumeration.append(synonym)
 
         exists, checksum = self._slot_type_exists(name)
 
-        if(exists):
+        if exists:
             return self._lex_sdk.put_slot_type(name=name, description=name,
-                    enumerationValues=enumeration, checksum=checksum,
-                    valueSelectionStrategy='ORIGINAL_VALUE')
-
-        else:
-            return self._lex_sdk.put_slot_type(name=name, description=name,
-                    enumerationValues=enumeration,
-                    valueSelectionStrategy='ORIGINAL_VALUE')
+                                               enumerationValues=enumeration, checksum=checksum,
+                                               valueSelectionStrategy='ORIGINAL_VALUE')
+        return self._lex_sdk.put_slot_type(name=name, description=name,
+                                           enumerationValues=enumeration,
+                                           valueSelectionStrategy='ORIGINAL_VALUE')
 
     def delete_slot_type(self, name):
+        """ delete slot type by name and synonyms """
+
+        self._logger.info('Delete slot type %s', name)
         try:
             self._lex_sdk.delete_slot_type(name=name)
             return True
         except ClientError as ex:
-            if(self._not_found(ex, 'delete_slot_type')):
-                return True 
-            if(self._in_use(ex)):
+            if self._not_found(ex, 'delete_slot_type'):
+                return True
+            if self._in_use(ex):
                 return False
 
     def _in_use(self, ex):
@@ -58,20 +61,17 @@ class SlotBuilder(LexHelper, object):
             return True
         return False
 
-
     def _slot_type_exists(self, name):
-      try:
-          get_response = self._lex_sdk.get_slot_type(name=name, version='$LATEST')
-          self._logger.info(get_response)
-          checksum = get_response['checksum']
+        try:
+            get_response = self._lex_sdk.get_slot_type(name=name, version='$LATEST')
+            self._logger.info(get_response)
+            checksum = get_response['checksum']
 
-          return True, checksum
+            return True, checksum
 
-      except ClientError as ex:
-          if(self._not_found(ex, 'get_slot_type')):
-              return False, None
+        except ClientError as ex:
+            if self._not_found(ex, 'get_slot_type'):
+                return False, None
 
-          self._logger.error('Lex get_slot_tpe call failed')
-          raise
-
-
+            self._logger.error('Lex get_slot_tpe call failed')
+            raise
