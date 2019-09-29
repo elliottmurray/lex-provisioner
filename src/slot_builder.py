@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 
 # pylint: disable=import-error
 from lex_helper import LexHelper
+# pylint: enable=import-error
 
 class SlotBuilder(LexHelper):
     """ slot builder """
@@ -26,18 +27,18 @@ class SlotBuilder(LexHelper):
         """ put slot type by name and synonyms """
 
         self._logger.info('Put slot type %s', name)
-        enumeration = []
-        for synonym in synonyms:
-            enumeration.append(synonym)
+#        enumeration = []
+#        for synonym in synonyms:
+       # enumeration.append(synonym)
 
         exists, checksum = self._slot_type_exists(name)
 
         if exists:
             return self._lex_sdk.put_slot_type(name=name, description=name,
-                                               enumerationValues=enumeration, checksum=checksum,
+                                               enumerationValues=synonyms, checksum=checksum,
                                                valueSelectionStrategy='ORIGINAL_VALUE')
         return self._lex_sdk.put_slot_type(name=name, description=name,
-                                           enumerationValues=enumeration,
+                                           enumerationValues=synonyms,
                                            valueSelectionStrategy='ORIGINAL_VALUE')
 
     def delete_slot_type(self, name):
