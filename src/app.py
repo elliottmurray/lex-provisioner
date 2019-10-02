@@ -1,6 +1,7 @@
 """ entry point for lambda"""
 import json
 import requests # pylint: disable=unused-import
+import os
 
 # pylint: disable=import-error
 import crhelper
@@ -14,6 +15,12 @@ logger = crhelper.log_config({"RequestId": "CONTAINER_INIT"}) # pylint: disable=
 logger.info('Logging configured')
 # set global to track init failures
 INIT_FAILED = False
+
+if (os.getenv('DEBUG', False)): # is there a better way of doing
+    import ptvsd
+
+    ptvsd.enable_attach(address=('0.0.0.0', 5890), redirect_output=True)
+    ptvsd.wait_for_attach()
 
 def _get_function_arn(function_name, aws_region, aws_account_id, prefix):
     return 'arn:aws:lambda:' + aws_region + ':' + aws_account_id \
@@ -108,6 +115,7 @@ def create(event, context):
     the exception message will be sent to CloudFormation Events.
     """
     slot_builder = slot_builder_instance(context)
+    print("jefef")
     lex_bot_builder = lex_builder_instance(context)
     slot_types = event.get('ResourceProperties').get('slotTypes')
     slot_types = [] if slot_types is None else slot_types

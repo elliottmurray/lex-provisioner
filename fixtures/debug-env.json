@@ -1,0 +1,7 @@
+
+{
+  "LexProvisioner": {
+    "DEBUG": "True",
+    "CONFIRM": "False"
+  }
+}
