@@ -1,13 +1,14 @@
-import boto3
-import time
 import os
-
-from botocore.exceptions import ClientError
+import time
 import traceback
+
+import boto3
+from botocore.exceptions import ClientError
 
 class LexHelper(object):
     MAX_DELETE_TRIES = 5
     RETRY_SLEEP = 5
+    # pylint: disable=no-member
 
     def _get_lex_sdk(self):
         return boto3.Session().client('lex-models')
@@ -30,7 +31,7 @@ class LexHelper(object):
     def _update_lex_resource(self, func, func_name, checksum, properties):
         try:
             response = func(checksum=checksum, **properties)
-            self._logger.info(
+            self._logger.info( 
                 'Updated lex resource using %s, response: %s', func_name, response)
             return response
         except Exception as ex:
@@ -41,7 +42,7 @@ class LexHelper(object):
 
     def _delete_lex_resource(self, func, func_name, **properties):
         '''Delete lex resource'''
-        self._logger.info('%s : %s', func_name, properties)
+        self._logger.info('%s : %s', func_name, properties) 
         count = self.MAX_DELETE_TRIES
         while True:
             try:
@@ -63,7 +64,6 @@ class LexHelper(object):
         sts = boto3.client('sts')
         aws_account_id = sts.get_caller_identity()["Arn"].split(':')[4]
 
-        #self._logger.debug('Account id: %s', aws_account_id)
         return aws_account_id, aws_region
 
     def _get_intent_arn(self, intent_name, prefix=''):
@@ -98,5 +98,3 @@ class LexHelper(object):
             self._logger.error(
                 'Lex delete_slot_type call max retries')
             return False
-
-
