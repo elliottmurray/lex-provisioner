@@ -24,12 +24,18 @@ def monkeypatch_account(mocker, monkeypatch):
     arn_mock.get_caller_identity.return_value = {'Arn': arn}
 
 
+
 def test_create_get_aws_details(mocker, monkeypatch):
+    values = {'AWS_REGION': aws_region}
+    with mock.patch.dict('os.environ', values):
 
-    monkeypatch_account(mocker, monkeypatch)
+        # mocked_os.environ.return_value = {'AWS_REGION': aws_region}
+        monkeypatch_account(mocker, monkeypatch)
 
-    helper = StubLexHelper(mocker)
-    account, region = helper._get_aws_details()
+        helper = StubLexHelper(mocker)
+        account, region = helper._get_aws_details()
 
-    assert account == account_id
-    assert region == aws_region
+        assert account == account_id
+        assert region == aws_region
+        # mocked_os.environ.assert_called_once()
+

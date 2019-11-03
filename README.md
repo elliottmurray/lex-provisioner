@@ -43,7 +43,7 @@ By default, this command writes built artifacts to `.aws-sam/build` folder.
 **Invoking function with create and delete  event**
 
 ```bash
-sam local invoke -e fixtures/testi-create.json
+sam local invoke -e fixtures/test-create.json
 sam local invoke -e fixtures/test-create.json -n fixtures/test-env.json # override env vars option
 
 sam local invoke -e fixtures/test-delete.json -n fixtures/test-env.json # delete option 
@@ -57,30 +57,7 @@ cfn
 
 If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
 
-**SAM CLI** is used to emulate both Lambda and API Gateway locally and uses our `template.yaml` to understand how to bootstrap this environment (runtime, where the source code is, etc.) - The following excerpt is what the CLI will read in order to initialize an API and its routes:
-
-```yaml
-...
-Events:
-    HelloWorld:
-        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-        Properties:
-            Path: /hello
-            Method: get
-```
-
 ## Packaging and deployment
-
-AWS Lambda Python runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
-
-```yaml
-...
-    HelloWorldFunction:
-        Type: AWS::Serverless::Function
-        Properties:
-            CodeUri: hello_world/
-            ...
-```
 
 Firstly, we need a `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
 

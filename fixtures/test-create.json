@@ -32,6 +32,12 @@
               "conclusion": "a conclusion"
           }
         }
+    ],
+    "slotTypes":[
+      {
+        "Name": "pizzasize",
+        "Values": ["thick", "thin"]
+      }
     ]
   }
 }

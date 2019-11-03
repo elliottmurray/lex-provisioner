@@ -12,7 +12,7 @@ from intent_builder import IntentBuilder
 from slot_builder import SlotBuilder
 from lex_helper import LexHelper
 
-class LexBotBuilder(LexHelper, object):
+class LexBotBuilder(LexHelper):
 
     MAX_DELETE_TRIES = 5
     RETRY_SLEEP = 5
@@ -23,11 +23,11 @@ class LexBotBuilder(LexHelper, object):
     def __init__(self, logger, context, lex_sdk=None, intent_builder=None):
         self._logger = logger
         self._context = context
-        if(lex_sdk == None):
+        if lex_sdk is None:
             self._lex_sdk = self._get_lex_sdk()
         else:
             self._lex_sdk = lex_sdk
-        if(intent_builder == None):
+        if intent_builder is None:
 
             self._intent_builder = IntentBuilder(self._logger, self._context, lex_sdk=self._lex_sdk)
         else:
@@ -70,7 +70,7 @@ class LexBotBuilder(LexHelper, object):
         bot_exists, checksum = self._bot_exists(bot_name)
         version_response = None
 
-        if(bot_exists):
+        if bot_exists:
             creation_response = self._update_lex_resource(
                 self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
             checksum = creation_response['checksum']
@@ -175,11 +175,6 @@ class LexBotBuilder(LexHelper, object):
             traceback.print_exc(ex)
             delete_failed = True
 
-   #     try:
-   #         self._delete_slot_types(lex_definition['slot_types'])
-   #     except Exception as ex:
-   #         delete_failed = True
-
         if delete_failed:
             raise Exception(
                 'See logs for details on what resources failed to delete')
@@ -187,10 +182,10 @@ class LexBotBuilder(LexHelper, object):
         self._logger.info('Successfully deleted bot and associated resources')
 
     def _validate_intent(self, intent_definition):
-            utterances = intent_definition.get('Utterances')
+        utterances = intent_definition.get('Utterances')
 
-            if utterances is None:
-                raise Exception("Utterances missing in intents")
+        if utterances is None:
+            raise Exception("Utterances missing in intents")
 
     def _extract_intent_attributes(self, intent_definition):
         intent_name = intent_definition.get('Name')
@@ -207,10 +202,9 @@ class LexBotBuilder(LexHelper, object):
             slots = SlotBuilder(self._logger, self._context).get_slots(intent_definition.get('slots'))
             intent_versions.append(
                 self._intent_builder.put_intent(bot_name, intent_name, codehook_arn,
-                    intent_definition.get('Utterances'),
-                    max_attempts=max_attempts,
-                    plaintext=intent_definition.get('Plaintext')
-                  )
+                                                intent_definition.get('Utterances'),
+                                                max_attempts=max_attempts,
+                                                plaintext=intent_definition.get('Plaintext'))
             )
 
         return intent_versions

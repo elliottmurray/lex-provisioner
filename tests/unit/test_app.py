@@ -1,6 +1,10 @@
 """test_app"""
+# pylint: disable=import-error
+
 import mock # pylint: disable=unused-import
 import pytest # pylint: disable=unused-import
+# pylint: enable=import-error
+
 from pytest_mock import mocker # pylint: disable=unused-import
 
 import app # pylint: disable=import-error
@@ -63,10 +67,17 @@ def cfn_event(event_type):
                     }
                 }
             ],
-            "slotTypes":[
-                {"Name": 'pizzatype', "Values": ['thin', 'thick']}
-            ],
-            },
+            "slotTypes":[{
+                "pizzasize":[
+                    {
+                        "thick": ["thick", "fat"],                        
+                    },
+                    {
+                        "thin": ["thin", "light"]
+                    }
+                ]
+            }]
+        },
         "ResourceType": "Custom::LexBot",
         "ResponseURL": "https://cloudformation-custom-resource-response-useast1.s3.amazonaws.com/arn%3Aaws%3Acloudformation%3Aus-east-1%3A773592622512%3Astack/elliott-test/db2706d0-2683-11e9-a40a-0a515b01a4a4%7CLexBot%7C23f87176-6197-429a-8fb7-890346bde9dc?AWSAccessKeyId=AKIAJRWMYHFMH4DNUF2Q&Expires=1549075566&Signature=9%2FbjkIyX35f7NRCbdrgIOvbmVes%3D",
         "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
@@ -146,7 +157,7 @@ def test_create_put_bot_no_prefix(cfn_create_event, setup, monkeypatch):
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -168,18 +179,25 @@ def test_create_put_slottypes_no_prefix(cfn_create_event, setup, monkeypatch):
 
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     def builder_slot_stub(context): # pylint: disable=unused-argument
         return slot_builder
 
+    synonyms = [
+        {
+            "thick": ["thick", "fat"]
+        },
+        {
+            'thin': ['thin', 'light']
+        }]
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
     monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
     response = app.create(cfn_create_event, context)
+    slot_builder.put_slot_type.assert_called_once_with('pizzasize', synonyms=synonyms)
 
-    slot_builder.put_slot_type.assert_called_once_with('pizzatype', ['thin', 'thick'])
     assert response['BotName'] == 'LexBot'
 
 def test_create_puts(cfn_create_event, setup, monkeypatch):
@@ -189,7 +207,7 @@ def test_create_puts(cfn_create_event, setup, monkeypatch):
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -202,15 +220,14 @@ def test_create_puts(cfn_create_event, setup, monkeypatch):
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
-def test_create_put_slottypes_(cfn_create_event, setup, monkeypatch):
+def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
     """ test_create_put_slottypes_"""
     context, builder, slot_builder = setup
 
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
-
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     def builder_slot_stub(context): # pylint: disable=unused-argument
@@ -221,7 +238,14 @@ def test_create_put_slottypes_(cfn_create_event, setup, monkeypatch):
 
     response = app.create(cfn_create_event, context)
 
-    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzatype', ['thin', 'thick'])
+    synonyms = [
+        {
+            "thick": ["thick", "fat"]
+        },
+        {
+            'thin': ['thin', 'light']
+        }]
+    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzasize', synonyms=synonyms)
     assert response['BotName'] == BOT_NAME
 
 def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
@@ -233,7 +257,7 @@ def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -254,7 +278,7 @@ def test_update_puts(cfn_create_event, setup, monkeypatch):
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -273,7 +297,7 @@ def test_delete(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.return_value = None
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
@@ -291,7 +315,7 @@ def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.return_value = None
 
-    def builder_bot_stub(event, context): # pylint: disable=unused-argument
+    def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)

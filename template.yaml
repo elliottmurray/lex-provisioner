@@ -64,7 +64,8 @@ Resources:
             Runtime: python3.7
             Environment:
                 Variables:
-                    CONFIRM: TRUE
+                    CONFIRM: TRUE,
+                    DEBUG: FALSE
     LogsForLambda:
         Type: 'AWS::IAM::Policy'
         Properties:
