@@ -47,12 +47,3 @@ def test_send_cfn_confirmation():
 
 #     data = json.loads(ret["body"])
 #     assert data["message"] == "hello world"
-
-
-def test_lambda_handler_2(cfn_event, mocker):
-  assert True == True
-  # mocker.patch('crhelper.cfn_handler')
-
-  # ret = app.lambda_handler(cfn_event, None)
-
-  # crhelper.cfn_handler.assert_called_once()

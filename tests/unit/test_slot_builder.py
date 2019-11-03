@@ -107,7 +107,7 @@ def test_create_slot_type(put_slot_type_response, mocker, lex):
         stub_slot_type_not_found_get(stubber)
         stub_slot_type_creation(stubber, put_slot_type_response,
                                 put_slot_type_request(SLOT_TYPE_NAME, synonyms=stub_values))
-        synonyms = {'thin': ['skinny']}
+        synonyms = [{'thin': ['skinny']}]
 
         slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
 
@@ -128,7 +128,7 @@ def test_update_slot_type(put_slot_type_response, mocker, lex):
 
         stub_slot_type_get(stubber, SLOT_TYPE_NAME)
         stub_slot_type_creation(stubber, put_slot_type_response, put_request)
-        synonyms = {'thin': ['skinny']}
+        synonyms = [{'thin': ['skinny']}]
 
         response = slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
 

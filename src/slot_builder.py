@@ -27,18 +27,21 @@ class SlotBuilder(LexHelper):
         """ put slot type by name and synonyms """
 
         self._logger.info('Put slot type %s', name)
-#        enumeration = []
-#        for synonym in synonyms:
-       # enumeration.append(synonym)
+        enumeration = []
+        for synonym in synonyms:
+            key = list(synonym.keys())[0]
+            value = synonym[key]
+            enumeration.append({'value': key, 
+                                'synonyms': value})
 
         exists, checksum = self._slot_type_exists(name)
 
         if exists:
             return self._lex_sdk.put_slot_type(name=name, description=name,
-                                               enumerationValues=synonyms, checksum=checksum,
+                                               enumerationValues=enumeration, checksum=checksum,
                                                valueSelectionStrategy='ORIGINAL_VALUE')
         return self._lex_sdk.put_slot_type(name=name, description=name,
-                                           enumerationValues=synonyms,
+                                           enumerationValues=enumeration,
                                            valueSelectionStrategy='ORIGINAL_VALUE')
 
     def delete_slot_type(self, name):

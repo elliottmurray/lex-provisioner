@@ -70,12 +70,10 @@ def cfn_event(event_type):
             "slotTypes":[{
                 "pizzasize":[
                     {
-                        "Name": "thick",
-                        "Values": ["thick", "fat"]
+                        "thick": ["thick", "fat"],                        
                     },
                     {
-                        "Name": "thin",
-                        "Values": ["thin", "light"]
+                        "thin": ["thin", "light"]
                     }
                 ]
             }]
@@ -187,12 +185,19 @@ def test_create_put_slottypes_no_prefix(cfn_create_event, setup, monkeypatch):
     def builder_slot_stub(context): # pylint: disable=unused-argument
         return slot_builder
 
+    synonyms = [
+        {
+            "thick": ["thick", "fat"]
+        },
+        {
+            'thin': ['thin', 'light']
+        }]
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
     monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
     response = app.create(cfn_create_event, context)
+    slot_builder.put_slot_type.assert_called_once_with('pizzasize', synonyms=synonyms)
 
-    slot_builder.put_slot_type.assert_called_once_with('pizzatype', ['thin', 'thick'])
     assert response['BotName'] == 'LexBot'
 
 def test_create_puts(cfn_create_event, setup, monkeypatch):
@@ -215,12 +220,11 @@ def test_create_puts(cfn_create_event, setup, monkeypatch):
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
-def test_create_put_slottypes_(cfn_create_event, setup, monkeypatch):
+def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
     """ test_create_put_slottypes_"""
     context, builder, slot_builder = setup
 
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
-
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
     def builder_bot_stub(context): # pylint: disable=unused-argument
@@ -234,7 +238,14 @@ def test_create_put_slottypes_(cfn_create_event, setup, monkeypatch):
 
     response = app.create(cfn_create_event, context)
 
-    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzatype', ['thin', 'thick'])
+    synonyms = [
+        {
+            "thick": ["thick", "fat"]
+        },
+        {
+            'thin': ['thin', 'light']
+        }]
+    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzasize', synonyms=synonyms)
     assert response['BotName'] == BOT_NAME
 
 def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
