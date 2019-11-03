@@ -35,8 +35,14 @@
     ],
     "slotTypes":[
       {
-        "Name": "pizzasize",
-        "Values": ["thick", "thin"]
+        "pizzasize": [
+          {
+            "thick": ["fat", "thick"]
+          },
+          { 
+            "thin": ["thin", "skinny"]
+          }
+        ]
       }
     ]
   }
