@@ -10,7 +10,6 @@ from unittest.mock import MagicMock
 
 import app
 
-
 @pytest.fixture()
 def cfn_event():
     """ Generates Custom CFN create Event"""
@@ -32,7 +31,8 @@ def cfn_event():
 
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_send_cfn_confirmation():
-     ret = app.send_cfn_confirmation(cfn_event, context)
+    context = None
+    app.send_cfn_confirmation(cfn_event, context)
 
 # def test_lambda_handler(cfn_event, mocker):
 #     context = mocker.Mock()
