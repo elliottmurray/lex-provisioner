@@ -15,6 +15,7 @@ import crhelper # pylint: disable=import-error,unused-import
 BOT_NAME = 'pythontestLexBot'
 BOT_VERSION = '$LATEST'
 LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
+SLOT_TYPE_NAME = "pizzasize"
 
 @pytest.fixture()
 def cfn_create_event():
@@ -68,9 +69,9 @@ def cfn_event(event_type):
                 }
             ],
             "slotTypes":[{
-                "pizzasize":[
+                SLOT_TYPE_NAME:[
                     {
-                        "thick": ["thick", "fat"],                        
+                        "thick": ["thick", "fat"],
                     },
                     {
                         "thin": ["thin", "light"]
@@ -292,20 +293,36 @@ def test_update_puts(cfn_create_event, setup, monkeypatch):
     assert response['BotVersion'] == BOT_VERSION
 
 def test_delete(cfn_delete_event, setup, monkeypatch):
-    """ test_delete """
     context, builder, _ = setup
+
+    builder.delete.return_value = None
+    def builder_bot_stub(context): # pylint: disable=unused-argument
+        return builder
+    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+
+    app.delete(cfn_delete_event, context)
+
+def test_delete_slots(cfn_delete_event, setup, monkeypatch):
+    """ test_delete """
+    context, builder, slot_builder = setup
 
     builder.delete.return_value = None
 
     def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
+    def builder_slot_stub(context): # pylint: disable=unused-argument
+        return slot_builder
+
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
     app.delete(cfn_delete_event, context)
 
     builder.delete.assert_called_once_with(BOT_NAME,
                                            cfn_delete_event['ResourceProperties'])
+    slot_builder.delete_slot_type.assert_called_once_with(SLOT_TYPE_NAME)
+
 
 def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
     """ test_delete_no_prefix """

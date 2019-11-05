@@ -105,7 +105,7 @@ def _bot_name(event):
     return _name_prefix(event) + event['LogicalResourceId']
 
 def _slot_type_name(event, slot_type):
-   return list(slot_type.keys())[0]   
+   return list(slot_type.keys())[0]
 
 def create(event, context):
     """
@@ -115,14 +115,13 @@ def create(event, context):
     the exception message will be sent to CloudFormation Events.
     """
     slot_builder = slot_builder_instance(context)
-    print("jefef")
     lex_bot_builder = lex_builder_instance(context)
     slot_types = event.get('ResourceProperties').get('slotTypes')
     slot_types = [] if slot_types is None else slot_types
 
     for slot_type in slot_types:
         name = _slot_type_name(event, slot_type)
-        slot_builder.put_slot_type(_name_prefix(event) + name, 
+        slot_builder.put_slot_type(_name_prefix(event) + name,
                                    synonyms=slot_type[name])
 
     bot_put_response = lex_bot_builder.put(_bot_name(event),
@@ -149,9 +148,17 @@ def delete(event, context):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
+    slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(context)
     lex_bot_builder.delete(_bot_name(event),
                            event.get('ResourceProperties'))
+
+    slot_types = event.get('ResourceProperties').get('slotTypes')
+    slot_types = [] if slot_types is None else slot_types
+
+    for slot_type in slot_types:
+        name = _slot_type_name(event, slot_type)
+        slot_builder.delete_slot_type(name)
 
 def lambda_handler(event, context):
     """
