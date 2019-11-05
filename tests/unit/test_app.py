@@ -293,12 +293,17 @@ def test_update_puts(cfn_create_event, setup, monkeypatch):
     assert response['BotVersion'] == BOT_VERSION
 
 def test_delete(cfn_delete_event, setup, monkeypatch):
-    context, builder, _ = setup
+    context, builder, slot_builder = setup
 
     builder.delete.return_value = None
     def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
+
+    def builder_slot_stub(context): # pylint: disable=unused-argument
+        return slot_builder
+
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
     app.delete(cfn_delete_event, context)
 
@@ -326,7 +331,7 @@ def test_delete_slots(cfn_delete_event, setup, monkeypatch):
 
 def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
     """ test_delete_no_prefix """
-    context, builder, _ = setup
+    context, builder, slot_builder = setup
     cfn_delete_event['ResourceProperties'].pop('NamePrefix')
     cfn_delete_event['ResourceProperties']['name'] = 'LexBot'
 
@@ -335,7 +340,11 @@ def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
     def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
+    def builder_slot_stub(context): # pylint: disable=unused-argument
+        return slot_builder
+
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
     app.delete(cfn_delete_event, context)
 
