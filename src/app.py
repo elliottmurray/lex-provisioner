@@ -105,7 +105,7 @@ def _bot_name(event):
     return _name_prefix(event) + event['LogicalResourceId']
 
 def _slot_type_name(event, slot_type):
-   return list(slot_type.keys())[0]
+   return slot_type
 
 def create(event, context):
     """
@@ -122,7 +122,7 @@ def create(event, context):
     for slot_type in slot_types:
         name = _slot_type_name(event, slot_type)
         slot_builder.put_slot_type(_name_prefix(event) + name,
-                                   synonyms=slot_type[name])
+                                   synonyms=slot_types[name])
 
     bot_put_response = lex_bot_builder.put(_bot_name(event),
                                            event.get('ResourceProperties'))

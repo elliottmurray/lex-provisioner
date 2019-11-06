@@ -28,9 +28,8 @@ class SlotBuilder(LexHelper):
 
         self._logger.info('Put slot type %s', name)
         enumeration = []
-        for synonym in synonyms:
-            key = list(synonym.keys())[0]
-            value = synonym[key]
+        for key in synonyms:
+            value = synonyms[key]
             enumeration.append({'value': key,
                                 'synonyms': value})
 

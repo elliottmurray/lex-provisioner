@@ -29,17 +29,11 @@
           }
         }
     ],
-    "slotTypes":[
-      {
-        "pizzasize": [
-          {
-            "thick": ["fat", "thick"]
-          },
-          {
-            "thin": ["thin", "skinny"]
-          }
-        ]
+    "slotTypes":{
+      "pizzasize": {
+        "thick": ["thick", "fat"],
+        "thin": ["thin", "light"]
       }
-    ]
+    }
   }
 }

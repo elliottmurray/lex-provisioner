@@ -16,6 +16,10 @@ BOT_NAME = PREFIX + 'LexBot'
 BOT_VERSION = '$LATEST'
 LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 SLOT_TYPE_NAME = "pizzasize"
+SYNONYMS = {
+      "thick": ["thick", "fat"],
+      'thin': ['thin', 'light']
+    }
 
 @pytest.fixture()
 def cfn_create_event():
@@ -68,16 +72,12 @@ def cfn_event(event_type):
                     }
                 }
             ],
-            "slotTypes":[{
-                SLOT_TYPE_NAME:[
-                    {
-                        "thick": ["thick", "fat"],
-                    },
-                    {
-                        "thin": ["thin", "light"]
-                    }
-                ]
-            }]
+            "slotTypes":{
+              SLOT_TYPE_NAME: {
+                "thick": ["thick", "fat"],
+                "thin": ["thin", "light"]
+              }
+            }
         },
         "ResourceType": "Custom::LexBot",
         "ResponseURL": "https://cloudformation-custom-resource-response-useast1.s3.amazonaws.com/arn%3Aaws%3Acloudformation%3Aus-east-1%3A773592622512%3Astack/elliott-test/db2706d0-2683-11e9-a40a-0a515b01a4a4%7CLexBot%7C23f87176-6197-429a-8fb7-890346bde9dc?AWSAccessKeyId=AKIAJRWMYHFMH4DNUF2Q&Expires=1549075566&Signature=9%2FbjkIyX35f7NRCbdrgIOvbmVes%3D",
@@ -186,18 +186,12 @@ def test_create_put_slottypes_no_prefix(cfn_create_event, setup, monkeypatch):
     def builder_slot_stub(context): # pylint: disable=unused-argument
         return slot_builder
 
-    synonyms = [
-        {
-            "thick": ["thick", "fat"]
-        },
-        {
-            'thin': ['thin', 'light']
-        }]
+
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
     monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
     response = app.create(cfn_create_event, context)
-    slot_builder.put_slot_type.assert_called_once_with('pizzasize', synonyms=synonyms)
+    slot_builder.put_slot_type.assert_called_once_with('pizzasize', synonyms=SYNONYMS)
 
     assert response['BotName'] == 'LexBot'
 
@@ -239,14 +233,7 @@ def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
 
     response = app.create(cfn_create_event, context)
 
-    synonyms = [
-        {
-            "thick": ["thick", "fat"]
-        },
-        {
-            'thin': ['thin', 'light']
-        }]
-    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzasize', synonyms=synonyms)
+    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzasize', synonyms=SYNONYMS)
     assert response['BotName'] == BOT_NAME
 
 def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
