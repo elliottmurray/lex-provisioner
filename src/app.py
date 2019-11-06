@@ -1,6 +1,6 @@
 """ entry point for lambda"""
 import json
-import requests # pylint: disable=unused-import
+# import requests # pylint: disable=unused-import
 import os
 
 # pylint: disable=import-error
@@ -16,11 +16,11 @@ logger.info('Logging configured')
 # set global to track init failures
 INIT_FAILED = False
 
-if (os.getenv('DEBUG', False)): # is there a better way of doing
-    import ptvsd
+# if (os.getenv('DEBUG', False)): # is there a better way of doing
+#     import ptvsd
 
-    ptvsd.enable_attach(address=('0.0.0.0', 5890), redirect_output=True)
-    ptvsd.wait_for_attach()
+#     ptvsd.enable_attach(address=('0.0.0.0', 5890), redirect_output=True)
+#     ptvsd.wait_for_attach()
 
 def _get_function_arn(function_name, aws_region, aws_account_id, prefix):
     return 'arn:aws:lambda:' + aws_region + ':' + aws_account_id \

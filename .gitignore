@@ -248,3 +248,5 @@ $RECYCLE.BIN/
 
 # generated yaml file
 packaged.yaml
+
+.aws/
