@@ -40,7 +40,8 @@ class SlotBuilder(LexHelper):
             response = self._lex_sdk.put_slot_type(name=name, description=name,
                                                enumerationValues=enumeration, checksum=checksum,
                                                valueSelectionStrategy='ORIGINAL_VALUE')
-        response = self._lex_sdk.put_slot_type(name=name, description=name,
+        else:
+          response = self._lex_sdk.put_slot_type(name=name, description=name,
                                            enumerationValues=enumeration,
                                            valueSelectionStrategy='ORIGINAL_VALUE')
 
