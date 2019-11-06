@@ -263,7 +263,7 @@ def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
 
-    response = app.create(cfn_create_event, context)
+    response = app.update(cfn_create_event, context)
 
     builder.put.assert_called_once_with('LexBot',
                                         cfn_create_event['ResourceProperties'])
@@ -284,13 +284,18 @@ def test_update_puts(cfn_create_event, setup, monkeypatch):
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
 
-    response = app.create(cfn_create_event, context)
+    response = app.update(cfn_create_event, context)
 
     builder.put.assert_called_once_with(BOT_NAME,
                                         cfn_create_event['ResourceProperties'])
 
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
+
+@pytest.mark.skip(reason="need to work out in CFN what is currently deployed and new")
+def test_update_deleted_slot(cfn_create_event, setup, monkeypatch):
+    context, builder, _ = setup
+    response = app.update(cfn_create_event, context)
 
 def test_delete(cfn_delete_event, setup, monkeypatch):
     """ test_delete """
