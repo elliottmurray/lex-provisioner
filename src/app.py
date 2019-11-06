@@ -157,7 +157,7 @@ def delete(event, context):
     slot_types = [] if slot_types is None else slot_types
 
     for slot_type in slot_types:
-        name = _slot_type_name(event, slot_type)
+        name = _name_prefix(event) + _slot_type_name(event, slot_type)
         slot_builder.delete_slot_type(name)
 
 def lambda_handler(event, context):

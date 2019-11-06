@@ -11,8 +11,8 @@ import app # pylint: disable=import-error
 import crhelper # pylint: disable=import-error,unused-import
 
 # pylint: disable=redefined-outer-name
-
-BOT_NAME = 'pythontestLexBot'
+PREFIX = 'pythontest'
+BOT_NAME = PREFIX + 'LexBot'
 BOT_VERSION = '$LATEST'
 LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 SLOT_TYPE_NAME = "pizzasize"
@@ -37,7 +37,7 @@ def cfn_event(event_type):
         "RequestId": "1234abcd-1234-123a-1ab9-123456bce9dc",
         "RequestType": event_type,
         "ResourceProperties": {
-            "NamePrefix": "pythontest",
+            "NamePrefix": PREFIX,
             "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
             "loglevel": "info",
             "description": "friendly AI chatbot overlord",
@@ -293,21 +293,6 @@ def test_update_puts(cfn_create_event, setup, monkeypatch):
     assert response['BotVersion'] == BOT_VERSION
 
 def test_delete(cfn_delete_event, setup, monkeypatch):
-    context, builder, slot_builder = setup
-
-    builder.delete.return_value = None
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    def builder_slot_stub(context): # pylint: disable=unused-argument
-        return slot_builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
-    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
-
-    app.delete(cfn_delete_event, context)
-
-def test_delete_slots(cfn_delete_event, setup, monkeypatch):
     """ test_delete """
     context, builder, slot_builder = setup
 
@@ -326,7 +311,7 @@ def test_delete_slots(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.assert_called_once_with(BOT_NAME,
                                            cfn_delete_event['ResourceProperties'])
-    slot_builder.delete_slot_type.assert_called_once_with(SLOT_TYPE_NAME)
+    slot_builder.delete_slot_type.assert_called_once_with(PREFIX + SLOT_TYPE_NAME)
 
 
 def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
@@ -350,3 +335,4 @@ def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.assert_called_once_with("LexBot",
                                            cfn_delete_event['ResourceProperties'])
+    slot_builder.delete_slot_type.assert_called_once_with(SLOT_TYPE_NAME)
