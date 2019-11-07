@@ -53,14 +53,25 @@ def cfn_event(event_type):
                 'message': 'abort statement'
             },
             "intents":[
-                {
-                    "Name": 'greeting',
-                    "CodehookArn": LAMBDA_ARN,
-                    "Utterances": ['greetings my friend', 'hello'],
-                    "maxAttempts": 3,
-                    "Plaintext": {
-                        "confirmation": 'a confirmation'
+              {
+                  "Name": 'greeting',
+                  "CodehookArn": LAMBDA_ARN,
+                  "Utterances": ['greetings my friend', 'hello'],
+                  "maxAttempts": 3,
+                  "Plaintext": {
+                      "confirmation": 'a confirmation'
+                  },
+                  "Slots": [
+                    {
+                      "Name": "name",
+                      "Utterances": [
+                        "I am {name}",
+                        "My name is {name}"
+                      ],
+                      "Type": "AMAZON.Person",
+                      "Prompt": "Great thanks, please enter your name."
                     }
+                  ]
                 },
                 {
                     "Name": 'farewell',
@@ -194,6 +205,18 @@ def test_create_put_slottypes_no_prefix(cfn_create_event, setup, monkeypatch):
     slot_builder.put_slot_type.assert_called_once_with('pizzasize', synonyms=SYNONYMS)
 
     assert response['BotName'] == 'LexBot'
+
+def test_create_put_slots_no_prefix(cfn_create_event, setup, monkeypatch):
+    """ test_create_puts_bot_slots_no_prefix"""
+    context, builder, _ = setup
+    cfn_create_event['ResourceProperties'].pop('NamePrefix')
+    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
+
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
+    response = app.create(cfn_create_event, context)
+
+    assert response['BotName'] == BOT_NAME
+    assert response['BotVersion'] == BOT_VERSION
 
 def test_create_puts(cfn_create_event, setup, monkeypatch):
     """ test_create_puts_bot"""
