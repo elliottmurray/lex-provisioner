@@ -103,15 +103,15 @@ class LexBotBuilder(LexHelper):
         #             slot['slotTypeVersion'] = slot_types[slot['slotType']]
         return intents_definition
 
-    def _bot_put_properties(self, bot_name, checksum, resource_properties):
+    def _bot_put_properties(self, bot_name, checksum, messages, **kwargs):
 
         properties = {
             "name": bot_name,
-            "locale": resource_properties['locale'],
+            "locale": kwargs['locale'],
             "abortStatement": {
                 "messages": [
                     {
-                        "content": resource_properties['abortStatement']['message'],
+                        "content": messages['abortStatement'],
                         "contentType": "PlainText"
                     }
                 ]
@@ -122,12 +122,12 @@ class LexBotBuilder(LexHelper):
                 "maxAttempts": 1,
                 "messages": [
                     {
-                        "content": resource_properties['clarification']['message'],
+                        "content": messages['clarification'],
                         "contentType": "PlainText"
                     }
                 ]
             },
-            "description": resource_properties['description'],
+            "description": kwargs['description'],
             "idleSessionTTLInSeconds": 3000
         }
 
@@ -142,17 +142,17 @@ class LexBotBuilder(LexHelper):
 
  #       return intents
 
-    def put(self, bot_name, resource_properties):
-        """Create/Update lex-bot resources; bot, intents, slot_types"""
-        # slot_type_versions = self._put_slot_types(lex_definition['slot_types'])
-        intents_definition = resource_properties['intents']
+    def put(self, bot_name, intents, messages, **kwargs):
+        """Create/Update lex-bot resources; bot, intents, slot_types
+        Lex needs locale and description in kwargs
+        """
+        
         # intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
-        intent_defs = self._put_intents(bot_name, intents_definition)
+        intent_defs = self._put_intents(bot_name, intents)
         self._logger.info(intent_defs)
 
         checksum = ''
-        # bot_definition = self._replace_intent_version(lex_definition['bot'], intent_versions)
-        bot_properties = self._bot_put_properties(bot_name, checksum, resource_properties)
+        bot_properties = self._bot_put_properties(bot_name, checksum, messages, **kwargs)
         bot_properties.update({"intents": intent_defs})
 
         bot_response = self._put_bot(bot_name, bot_properties)

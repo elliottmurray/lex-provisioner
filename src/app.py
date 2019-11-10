@@ -116,16 +116,18 @@ def create(event, context):
     """
     slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(context)
-    slot_types = event.get('ResourceProperties').get('slotTypes')
+    resources = event.get('ResourceProperties')
+    slot_types = resources.get('slotTypes')
     slot_types = [] if slot_types is None else slot_types
 
     for slot_type in slot_types:
         name = _slot_type_name(event, slot_type)
         slot_builder.put_slot_type(_name_prefix(event) + name,
                                    synonyms=slot_types[name])
+    messages = resources.get('messages')
+    intents = resources.get('intents')
 
-    bot_put_response = lex_bot_builder.put(_bot_name(event),
-                                           event.get('ResourceProperties'))
+    bot_put_response = lex_bot_builder.put(_bot_name(event), intents, messages)
 
     return dict(
         BotName=bot_put_response['name'],

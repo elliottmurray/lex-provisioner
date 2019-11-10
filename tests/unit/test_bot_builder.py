@@ -15,6 +15,9 @@ BOT_NAME = 'pythontestLexBot'
 BOT_VERSION = '$LATEST'
 LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 
+DESCRIPTION = "friendly AI chatbot overlord"
+LOCALE = 'en-US'
+
 @pytest.fixture()
 def cfn_create_event():
     """ Generates resource props for a CFN create Event"""
@@ -26,6 +29,40 @@ def cfn_delete_event():
     """ Generates Custom CFN delete Event"""
     return resource_props("Delete")
 
+@pytest.fixture()
+def intent_defs():
+    """ Generates intents json"""
+    return [
+            {
+                "Name": 'greeting',
+                "CodehookArn": LAMBDA_ARN,
+                "Utterances": ['greetings my friend','hello'],
+                "maxAttempts": 3,
+                "Plaintext": {
+                    "confirmation": 'a confirmation'
+                }
+              },
+              {
+                "Name": 'farewell',
+                "CodehookArn": LAMBDA_ARN,
+                "Utterances": ['farewell my friend'],
+                "maxAttempts": 3,
+                "Plaintext": {
+                    "confirmation": 'a farewell confirmation'
+                }
+            }
+        ]
+    
+
+# @pytest.fixture()
+# def messages():
+#     return {
+#         'messages': {
+#             'clarification': 'clarification statement',
+#             'abortStatement': 'abort statement'
+#         }
+#     }
+
 def resource_props(event_type):
     """ Generates Custom CFN Event"""
 
@@ -35,12 +72,10 @@ def resource_props(event_type):
         "loglevel": "info",
         "description": "friendly AI chatbot overlord",
         "locale": 'en-US',
-        'clarification': {
-            'message': 'clarification statement'
-        },
-        'abortStatement': {
-            'message': 'abort statement'
-        },
+        'messages': {
+            'clarification': 'clarification statement',
+            'abortStatement': 'abort statement'
+        },   
         "intents":[
             {
                 "Name": 'greeting',
@@ -110,13 +145,13 @@ def _get_bot_response():
         "lastUpdatedDate": 10012019
     }
 
-
 @pytest.fixture()
 def put_bot_response():
     """ put bot response """
+
     return {
         "name": "test bot",
-        "locale": 'en-US',
+        "locale": LOCALE,
         "checksum": 'rnd value',
         "abortStatement": {
             "messages": [
@@ -138,14 +173,14 @@ def put_bot_response():
             "responseCard": "string"
         },
         "createdDate": 10012019,
-        "description": "friendly AI chatbot overlord",
+        "description": DESCRIPTION,
         "failureReason": "a failure",
         "idleSessionTTLInSeconds": 300,
         "status": "READY",
         "version": "$LATEST"
     }
 
-def put_bot_request(bot_name, bot_props, put_bot_response, has_checksum=False):
+def put_bot_request(bot_name, messages, has_checksum=False):
     """ put bot request """
 
     put_request = {
@@ -155,19 +190,19 @@ def put_bot_request(bot_name, bot_props, put_bot_response, has_checksum=False):
             'maxAttempts': 1,
             'messages': [
                 {
-                    'content': bot_props['clarification']['message'],
+                    'content': messages['clarification'],
                     'contentType': 'PlainText'
                 }
             ]
         },
-        'description': put_bot_response['description'],
+        'description': ANY,
         'idleSessionTTLInSeconds': ANY,
         'name': bot_name,
         'intents': [
             {'intentName': 'greeting', 'intentVersion': '$LATEST'},
             {'intentName': 'farewell', 'intentVersion': '$LATEST'}
         ],
-        'locale': put_bot_response['locale'],
+        'locale': ANY,
         'processBehavior': 'BUILD'
     }
 
@@ -234,12 +269,17 @@ def mock_context(mocker):
         return context
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
-        mocker):
+def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
     """ test_create_puts_bot"""
-    lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event, put_bot_response)
 
+    lex = setup()
+    messages = {        
+        'clarification': 'clarification statement',
+        'abortStatement': 'abort statement'        
+    }
+    expected_put_params = put_bot_request(BOT_NAME, messages)
+
+    
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
         intent_builder_instance = stub_put_intent(intent_builder)
@@ -249,7 +289,10 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME, cfn_create_event)
+        response = bot_builder.put(BOT_NAME, 
+                                   intent_defs, 
+                                   messages,
+                                   locale='en-US', description='test desc')
 
         assert response['name'] == BOT_NAME
         assert response['version'] == BOT_VERSION
