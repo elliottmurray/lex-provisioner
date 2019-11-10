@@ -18,6 +18,11 @@ LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 DESCRIPTION = "friendly AI chatbot overlord"
 LOCALE = 'en-US'
 
+MESSAGES = {
+    'clarification': 'clarification statement',
+    'abortStatement': 'abort statement'    
+}
+
 @pytest.fixture()
 def cfn_create_event():
     """ Generates resource props for a CFN create Event"""
@@ -52,16 +57,6 @@ def intent_defs():
                 }
             }
         ]
-    
-
-# @pytest.fixture()
-# def messages():
-#     return {
-#         'messages': {
-#             'clarification': 'clarification statement',
-#             'abortStatement': 'abort statement'
-#         }
-#     }
 
 def resource_props(event_type):
     """ Generates Custom CFN Event"""
@@ -272,12 +267,8 @@ def mock_context(mocker):
 def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
     """ test_create_puts_bot"""
 
-    lex = setup()
-    messages = {        
-        'clarification': 'clarification statement',
-        'abortStatement': 'abort statement'        
-    }
-    expected_put_params = put_bot_request(BOT_NAME, messages)
+    lex = setup()    
+    expected_put_params = put_bot_request(BOT_NAME, MESSAGES)
 
     
     with Stubber(lex) as stubber:
@@ -291,7 +282,7 @@ def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
 
         response = bot_builder.put(BOT_NAME, 
                                    intent_defs, 
-                                   messages,
+                                   MESSAGES,
                                    locale='en-US', description='test desc')
 
         assert response['name'] == BOT_NAME
@@ -299,11 +290,11 @@ def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
         stubber.assert_no_pending_responses()
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, mocker):
+def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
     """ test_update_puts_bot"""
     lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event,
-                                          put_bot_response, has_checksum=True)
+    
+    expected_put_params = put_bot_request(BOT_NAME, MESSAGES, has_checksum=True)
 
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
@@ -314,7 +305,9 @@ def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, moc
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME, cfn_create_event)
+        response = bot_builder.put(BOT_NAME, intent_defs, 
+                                   MESSAGES,
+                                   locale='en-US', description='test desc')
 
         assert response['name'] == BOT_NAME
         assert response['version'] == BOT_VERSION
@@ -323,12 +316,14 @@ def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, moc
 @mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called(intent_builder,
                                   cfn_create_event,
+                                  intent_defs, 
                                   get_bot_response,
                                   put_bot_response,
                                   mocker):
     """ create put intent called test """
     lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event, put_bot_response)
+    
+    expected_put_params = put_bot_request(BOT_NAME, MESSAGES)
 
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
@@ -339,7 +334,10 @@ def test_create_put_intent_called(intent_builder,
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME, cfn_create_event)
+        bot_builder.put(BOT_NAME, 
+                        intent_defs, 
+                        MESSAGES,
+                        locale='en-US', description='test desc')
 
         assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
@@ -350,13 +348,13 @@ def test_create_put_intent_called(intent_builder,
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called_error_no_utterance(intent_builder,
-                                  cfn_create_event,
+                                  intent_defs,
                                   get_bot_response,
                                   put_bot_response,
                                   mocker):
     """ create put intent called test """
     lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event, put_bot_response)
+    expected_put_params = put_bot_request(BOT_NAME, MESSAGES)
 
     with Stubber(lex) as stubber:
         context = mocker.Mock()
@@ -367,11 +365,14 @@ def test_create_put_intent_called_error_no_utterance(intent_builder,
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        del cfn_create_event['intents'][0]['Utterances']
-        del cfn_create_event['intents'][1]['Utterances']
+        del intent_defs[0]['Utterances']
+        del intent_defs[1]['Utterances']
 
         with pytest.raises(Exception) as excinfo:
-            bot_builder.put(BOT_NAME, cfn_create_event)
+            bot_builder.put(BOT_NAME, 
+                intent_defs, 
+                MESSAGES,
+                locale='en-US', description='test desc')
 
         assert "Utterances missing in intents" in str(excinfo.value)
 
