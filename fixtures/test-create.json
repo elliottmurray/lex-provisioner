@@ -11,12 +11,10 @@
     "loglevel": "info",
     "description": "friendly AI chatbot overlord",
     "locale": "en-US",
-    "clarification": {
-        "message": "clarification statement"
-    },
-    "abortStatement": {
-        "message": "abort statement"
-    },
+    "messages": {
+      "clarification": "clarification statement",
+      "abortStatement": "abort statement"
+    },    
     "intents":[
       {
         "Name": "elliottintent",

@@ -131,23 +131,12 @@ class LexBotBuilder(LexHelper):
             "idleSessionTTLInSeconds": 3000
         }
 
-        #properties.update(self._get_intent_versions(resource_properties))
         return properties
-
- #   def _get_intent_versions(self, resource_properties):
- #       intents = {'intents': []}
- #       for intent in resource_properties['intents']:
- #           intents['intents'].append({'intentName': intent['Name'],
- #                                      'intentVersion': '$LATEST'})
-
- #       return intents
 
     def put(self, bot_name, intents, messages, **kwargs):
         """Create/Update lex-bot resources; bot, intents, slot_types
         Lex needs locale and description in kwargs
         """
-        
-        # intents_definition = self._replace_slot_type_version(resource_properties['intents'], {})
         intent_defs = self._put_intents(bot_name, intents)
         self._logger.info(intent_defs)
 
@@ -219,7 +208,6 @@ class LexBotBuilder(LexHelper):
     def _delete_bot(self, bot_name):
         '''Delete bot'''
         self._logger.info('deleting bot: %s', bot_name)
-        version = '$LATEST'
         while True:
             try:
 

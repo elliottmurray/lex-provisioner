@@ -24,12 +24,6 @@ MESSAGES = {
 }
 
 @pytest.fixture()
-def cfn_create_event():
-    """ Generates resource props for a CFN create Event"""
-    return resource_props("Create")
-
-
-@pytest.fixture()
 def cfn_delete_event():
     """ Generates Custom CFN delete Event"""
     return resource_props("Delete")
@@ -314,8 +308,7 @@ def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
         stubber.assert_no_pending_responses()
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_create_put_intent_called(intent_builder,
-                                  cfn_create_event,
+def test_create_put_intent_called(intent_builder,                                  
                                   intent_defs, 
                                   get_bot_response,
                                   put_bot_response,

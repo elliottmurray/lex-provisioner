@@ -16,6 +16,7 @@ BOT_NAME = PREFIX + 'LexBot'
 BOT_VERSION = '$LATEST'
 LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 SLOT_TYPE_NAME = "pizzasize"
+DESCRIPTION = "friendly AI chatbot overlord"
 SYNONYMS = {
       "thick": ["thick", "fat"],
       'thin': ['thin', 'light']
@@ -45,7 +46,7 @@ def cfn_event(event_type):
             "NamePrefix": PREFIX,
             "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
             "loglevel": "info",
-            "description": "friendly AI chatbot overlord",
+            "description": DESCRIPTION,
             "locale": 'en-US',
             'messages': {
                 'clarification': 'clarification statement',
@@ -185,7 +186,7 @@ def test_create_put_bot_no_prefix(cfn_create_event, setup, monkeypatch):
     messages = cfn_create_event['ResourceProperties']['messages']
     intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with('LexBot', intents, messages)
+    builder.put.assert_called_once_with('LexBot', intents, messages, locale='en-US', description=DESCRIPTION)
 
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
@@ -236,7 +237,7 @@ def test_create_puts(cfn_create_event, setup, monkeypatch):
     messages = cfn_create_event['ResourceProperties']['messages']
     intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with(BOT_NAME, intents, messages)
+    builder.put.assert_called_once_with(BOT_NAME, intents, messages, locale='en-US', description=DESCRIPTION)
 
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
@@ -272,7 +273,7 @@ def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
     messages = cfn_create_event['ResourceProperties']['messages']
     intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with('LexBot', intents, messages)
+    builder.put.assert_called_once_with('LexBot', intents, messages, locale='en-US', description=DESCRIPTION)
 
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
@@ -292,7 +293,7 @@ def test_update_puts(cfn_create_event, setup, monkeypatch):
     messages = cfn_create_event['ResourceProperties']['messages']
     intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with(BOT_NAME, intents, messages)
+    builder.put.assert_called_once_with(BOT_NAME, intents, messages, locale='en-US', description=DESCRIPTION)
     
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION

@@ -127,7 +127,8 @@ def create(event, context):
     messages = resources.get('messages')
     intents = resources.get('intents')
 
-    bot_put_response = lex_bot_builder.put(_bot_name(event), intents, messages)
+    bot_put_response = lex_bot_builder.put(_bot_name(event), intents, messages, 
+        locale=resources.get('locale'), description=resources.get('description'))
 
     return dict(
         BotName=bot_put_response['name'],
