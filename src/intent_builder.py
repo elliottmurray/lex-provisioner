@@ -23,6 +23,14 @@ class IntentBuilder(LexHelper, object):
         else:
             self._lambda_sdk = lambda_sdk
 
+    def put_intent2(self, intent):
+        bot_name = intent.bot_name
+        intent_name = intent.intent_name
+        codehook_arn = intent.codehook_arn 
+        utterances = intent.utterances
+        attrs = intent.attrs
+        return self.put_intent(bot_name, intent_name, codehook_arn, utterances, max_attempts=attrs['max_attempts'], plaintext=attrs['plaintext'])
+
     def put_intent(self, bot_name, intent_name, codehook_arn, utterances,
                    max_attempts=3, plaintext=None):
         """Create intent and configure any required lambda permissions

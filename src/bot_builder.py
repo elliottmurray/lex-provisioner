@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 from intent_builder import IntentBuilder
 from slot_builder import SlotBuilder
 from lex_helper import LexHelper
+from models.intents import Intent
 
 class LexBotBuilder(LexHelper):
 
@@ -170,30 +171,21 @@ class LexBotBuilder(LexHelper):
 
         self._logger.info('Successfully deleted bot and associated resources')
 
-    def _validate_intent(self, intent_definition):
-        utterances = intent_definition.get('Utterances')
-
-        if utterances is None:
-            raise Exception("Utterances missing in intents")
-
-    def _extract_intent_attributes(self, intent_definition):
-        intent_name = intent_definition.get('Name')
-        codehook_arn = intent_definition.get('CodehookArn')
-        max_attempts = intent_definition.get('maxAttempts')
-        return intent_name, codehook_arn, max_attempts
-
 
     def _put_intents(self, bot_name, intent_definitions):
         intent_versions = []
         for intent_definition in intent_definitions:
-            self._validate_intent(intent_definition)
-            intent_name, codehook_arn, max_attempts = self._extract_intent_attributes(intent_definition)
-            slots = SlotBuilder(self._logger, self._context).get_slots(intent_definition.get('slots'))
+            intent = Intent.create_intent(bot_name, intent_definition)
+            # self._validate_intent(intent_definition)s
+            
+            # slots = SlotBuilder(self._logger, self._context).get_slots(intent_definition.get('slots'))
             intent_versions.append(
-                self._intent_builder.put_intent(bot_name, intent_name, codehook_arn,
-                                                intent_definition.get('Utterances'),
-                                                max_attempts=max_attempts,
-                                                plaintext=intent_definition.get('Plaintext'))
+                self._intent_builder.put_intent2(intent)
+
+                # self._intent_builder.put_intent(bot_name, intent_name, codehook_arn,
+                #                                 intent_definition.get('Utterances'),
+                #                                 max_attempts=max_attempts,
+                #                                 plaintext=intent_definition.get('Plaintext'))
             )
 
         return intent_versions

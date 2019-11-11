@@ -1,0 +1,29 @@
+class Intent(object):
+
+    def __init__(self, bot_name, intent_name, codehook_arn, utterances, slots, **kwargs):
+        self.bot_name = bot_name
+        self.intent_name = intent_name
+        self.codehook_arn = codehook_arn
+        self.utterances = utterances
+        self.slots = slots
+        self.attrs = kwargs
+        self._validate_intent()
+
+    def _validate_intent(self):
+        if self.utterances is None:
+            raise Exception("Utterances missing in intents")
+
+    @classmethod
+    def create_intent(cls, bot_name, intent_definition):
+        intent_name, codehook_arn, max_attempts = cls._extract_intent_attributes(intent_definition)
+        utterances = intent_definition.get('Utterances')
+        slots = intent_definition.get('slots')
+        return Intent(bot_name, intent_name, codehook_arn, utterances, slots, max_attempts=max_attempts, plaintext=intent_definition.get('Plaintext'))
+
+    @classmethod
+    def _extract_intent_attributes(cls, intent_definition):
+        intent_name = intent_definition.get('Name')
+        codehook_arn = intent_definition.get('CodehookArn')
+        max_attempts = intent_definition.get('maxAttempts')
+        return intent_name, codehook_arn, max_attempts
+        
