@@ -180,7 +180,7 @@ class LexBotBuilder(LexHelper):
 
             # slots = SlotBuilder(self._logger, self._context).get_slots(intent_definition.get('slots'))
             intent_versions.append(
-                self._intent_builder.put_intent2(bot_name, intent)
+                self._intent_builder.put_intent(bot_name, intent)
 
                 # self._intent_builder.put_intent(bot_name, intent_name, codehook_arn,
                 #                                 intent_definition.get('Utterances'),

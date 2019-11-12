@@ -334,7 +334,7 @@ def test_create_put_intent_called(intent_builder,
                         MESSAGES,
                         locale='en-US', description='test desc')
 
-        assert intent_builder_instance.put_intent2.call_count == 2
+        assert intent_builder_instance.put_intent.call_count == 2
         intent = Intent(BOT_NAME,
                 'farewell',
                 LAMBDA_ARN,
@@ -343,7 +343,7 @@ def test_create_put_intent_called(intent_builder,
                 max_attempts=3,
                 plaintext={'confirmation': 'a farewell confirmation'})
 
-        intent_builder_instance.put_intent2.assert_called_with(BOT_NAME, intent)
+        intent_builder_instance.put_intent.assert_called_with(BOT_NAME, intent)
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called_error_no_utterance(intent_builder,

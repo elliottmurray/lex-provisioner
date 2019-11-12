@@ -31,6 +31,7 @@ class Intent(object):
         intent_name, codehook_arn, max_attempts = cls._extract_intent_attributes(intent_definition)
         utterances = intent_definition.get('Utterances')
         slots = intent_definition.get('slots')
+        max_attempts = intent_definition.get('Plaintext') if intent_definition.get('Plaintext') else 3
         return Intent(bot_name, intent_name, codehook_arn, utterances, slots, max_attempts=max_attempts, plaintext=intent_definition.get('Plaintext'))
 
     @classmethod
