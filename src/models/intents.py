@@ -13,6 +13,19 @@ class Intent(object):
         if self.utterances is None:
             raise Exception("Utterances missing in intents")
 
+
+    def __eq__(self, other):
+        """Override the default Equals behavior"""
+
+        if isinstance(self, other.__class__):
+            return (self.bot_name == other.bot_name
+                and self.intent_name == other.intent_name
+                and self.codehook_arn == other.codehook_arn
+                and self.utterances == other.utterances
+                and self.slots == other.slots
+                and self.attrs == other.attrs)
+        return False
+
     @classmethod
     def create_intent(cls, bot_name, intent_definition):
         intent_name, codehook_arn, max_attempts = cls._extract_intent_attributes(intent_definition)
@@ -26,4 +39,3 @@ class Intent(object):
         codehook_arn = intent_definition.get('CodehookArn')
         max_attempts = intent_definition.get('maxAttempts')
         return intent_name, codehook_arn, max_attempts
-        

@@ -9,6 +9,7 @@ from unittest.mock import Mock
 
 from bot_builder import LexBotBuilder
 import crhelper
+from models.intents import Intent
 
 
 BOT_NAME = 'pythontestLexBot'
@@ -20,7 +21,7 @@ LOCALE = 'en-US'
 
 MESSAGES = {
     'clarification': 'clarification statement',
-    'abortStatement': 'abort statement'    
+    'abortStatement': 'abort statement'
 }
 
 @pytest.fixture()
@@ -64,7 +65,7 @@ def resource_props(event_type):
         'messages': {
             'clarification': 'clarification statement',
             'abortStatement': 'abort statement'
-        },   
+        },
         "intents":[
             {
                 "Name": 'greeting',
@@ -239,7 +240,7 @@ def put_intent_responses():
 
 def stub_put_intent(intent_builder):
         intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.side_effect = put_intent_responses()
+        intent_builder_instance.put_intent2.side_effect = put_intent_responses()
         return intent_builder_instance
 
 def stub_put_bot(stubber, put_bot_response, expected_put_params):
@@ -261,10 +262,10 @@ def mock_context(mocker):
 def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
     """ test_create_puts_bot"""
 
-    lex = setup()    
+    lex = setup()
     expected_put_params = put_bot_request(BOT_NAME, MESSAGES)
 
-    
+
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
         intent_builder_instance = stub_put_intent(intent_builder)
@@ -274,8 +275,8 @@ def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME, 
-                                   intent_defs, 
+        response = bot_builder.put(BOT_NAME,
+                                   intent_defs,
                                    MESSAGES,
                                    locale='en-US', description='test desc')
 
@@ -287,7 +288,7 @@ def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
 def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
     """ test_update_puts_bot"""
     lex = setup()
-    
+
     expected_put_params = put_bot_request(BOT_NAME, MESSAGES, has_checksum=True)
 
     with Stubber(lex) as stubber:
@@ -299,7 +300,7 @@ def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME, intent_defs, 
+        response = bot_builder.put(BOT_NAME, intent_defs,
                                    MESSAGES,
                                    locale='en-US', description='test desc')
 
@@ -307,15 +308,16 @@ def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
         assert response['version'] == BOT_VERSION
         stubber.assert_no_pending_responses()
 
+
 @mock.patch('bot_builder.IntentBuilder')
-def test_create_put_intent_called(intent_builder,                                  
-                                  intent_defs, 
+def test_create_put_intent_called(intent_builder,
+                                  intent_defs,
                                   get_bot_response,
                                   put_bot_response,
                                   mocker):
     """ create put intent called test """
     lex = setup()
-    
+
     expected_put_params = put_bot_request(BOT_NAME, MESSAGES)
 
     with Stubber(lex) as stubber:
@@ -327,17 +329,21 @@ def test_create_put_intent_called(intent_builder,
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        bot_builder.put(BOT_NAME, 
-                        intent_defs, 
+        bot_builder.put(BOT_NAME,
+                        intent_defs,
                         MESSAGES,
                         locale='en-US', description='test desc')
 
-        assert intent_builder_instance.put_intent.call_count == 2
-        intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-                'farewell', LAMBDA_ARN,
+        assert intent_builder_instance.put_intent2.call_count == 2
+        intent = Intent(BOT_NAME,
+                'farewell',
+                LAMBDA_ARN,
                 ['farewell my friend'],
+                None,
                 max_attempts=3,
                 plaintext={'confirmation': 'a farewell confirmation'})
+
+        intent_builder_instance.put_intent2.assert_called_with(BOT_NAME, intent)
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called_error_no_utterance(intent_builder,
@@ -362,8 +368,8 @@ def test_create_put_intent_called_error_no_utterance(intent_builder,
         del intent_defs[1]['Utterances']
 
         with pytest.raises(Exception) as excinfo:
-            bot_builder.put(BOT_NAME, 
-                intent_defs, 
+            bot_builder.put(BOT_NAME,
+                intent_defs,
                 MESSAGES,
                 locale='en-US', description='test desc')
 

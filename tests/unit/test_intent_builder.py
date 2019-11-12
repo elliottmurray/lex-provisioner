@@ -9,7 +9,9 @@ import datetime
 from utils import ValidationError
 from intent_builder import IntentBuilder
 from lex_helper import LexHelper
+from models.intents import Intent
 
+SLOTS = 'dfd' #todo make this a slot
 aws_region = 'us-east-1'
 aws_account_id = '1234567789'
 CODEHOOKNAME = 'greetingCodehook'
@@ -225,6 +227,24 @@ def monkeypatch_account(monkeypatch):
             [aws_account_id, aws_region])
 
 def test_create_intent_missing_rejection_plaintext(put_intent_response,
+        codehook_uri, mocker, lex, aws_lambda, monkeypatch):
+    plaintext = {
+            "confirmation": 'some confirmation message'
+        }
+    intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                   UTTERANCES, SLOTS, plaintext=plaintext)
+
+    context = mock_context(mocker)
+    monkeypatch_account(monkeypatch)
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
+        intent_builder = IntentBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
+
+        with pytest.raises(Exception):
+            intent_builder.put_intent2(intent)
+
+def test_create_intent_old_missing_rejection_plaintext(put_intent_response,
         codehook_uri, mocker, lex, aws_lambda, monkeypatch):
    context = mock_context(mocker)
    monkeypatch_account(monkeypatch)
