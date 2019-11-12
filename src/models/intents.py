@@ -13,7 +13,6 @@ class Intent(object):
         if self.utterances is None:
             raise Exception("Utterances missing in intents")
 
-
     def __eq__(self, other):
         """Override the default Equals behavior"""
 
