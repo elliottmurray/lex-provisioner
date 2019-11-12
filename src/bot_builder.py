@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 from intent_builder import IntentBuilder
 from slot_builder import SlotBuilder
 from lex_helper import LexHelper
-from models.intents import Intent
+from models.intent import Intent
 
 class LexBotBuilder(LexHelper):
 

@@ -9,7 +9,7 @@ import datetime
 from utils import ValidationError
 from intent_builder import IntentBuilder
 from lex_helper import LexHelper
-from models.intents import Intent
+from models.intent import Intent
 
 SLOTS = 'dfd' #todo make this a slot
 aws_region = 'us-east-1'

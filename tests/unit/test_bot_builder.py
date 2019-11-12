@@ -9,7 +9,7 @@ from unittest.mock import Mock
 
 from bot_builder import LexBotBuilder
 import crhelper
-from models.intents import Intent
+from models.intent import Intent
 
 
 BOT_NAME = 'pythontestLexBot'
