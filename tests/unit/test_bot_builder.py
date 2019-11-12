@@ -239,9 +239,9 @@ def put_intent_responses():
     return [put_intent_response_1, put_intent_response_2]
 
 def stub_put_intent(intent_builder):
-        intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent2.side_effect = put_intent_responses()
-        return intent_builder_instance
+    intent_builder_instance = intent_builder.return_value
+    intent_builder_instance.put_intent.side_effect = put_intent_responses()
+    return intent_builder_instance
 
 def stub_put_bot(stubber, put_bot_response, expected_put_params):
     """ stub put bot"""
@@ -264,7 +264,6 @@ def test_create_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
 
     lex = setup()
     expected_put_params = put_bot_request(BOT_NAME, MESSAGES)
-
 
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
@@ -391,11 +390,12 @@ def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, m
         stub_get_request(stubber)
         stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
 
-
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, cfn_delete_event)
+        stubber.assert_no_pending_responses()
+
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_response, mocker):
@@ -411,11 +411,12 @@ def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_res
         stub_not_found_get_request(stubber)
         stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
 
-
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, cfn_delete_event)
+
+        assert intent_builder_instance.delete_intents.call_count == 1
 
 
 @mock.patch('bot_builder.IntentBuilder')
@@ -437,8 +438,8 @@ def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_res
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, cfn_delete_event)
 
         assert intent_builder_instance.delete_intents.call_count == 1
         intent_builder_instance.delete_intents.assert_called_with(['greeting','farewell'])
-
+        stubber.assert_no_pending_responses()
