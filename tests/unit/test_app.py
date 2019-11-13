@@ -9,6 +9,7 @@ from pytest_mock import mocker # pylint: disable=unused-import
 
 import app # pylint: disable=import-error
 import crhelper # pylint: disable=import-error,unused-import
+from models.intent import Intent
 
 # pylint: disable=redefined-outer-name
 PREFIX = 'pythontest'
@@ -51,7 +52,7 @@ def cfn_event(event_type):
             'messages': {
                 'clarification': 'clarification statement',
                 'abortStatement': 'abort statement'
-            },            
+            },
             "intents": [
               {
                   "Name": 'greeting',
@@ -171,22 +172,24 @@ def patch_slot_builder(context, slot_builder, monkeypatch):
 
     monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
-def test_create_put_bot_no_prefix(cfn_create_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.create_intent')
+def test_create_put_bot_no_prefix(mock_rename_intent, cfn_create_event, setup, monkeypatch):
     """ test_create_puts_bot"""
     context, builder, _ = setup
-
     cfn_create_event['ResourceProperties'].pop('NamePrefix')
     cfn_create_event['ResourceProperties'].pop('slotTypes')
 
-    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
 
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
     patch_builder(context, builder, monkeypatch)
 
     response = app.create(cfn_create_event, context)
     messages = cfn_create_event['ResourceProperties']['messages']
-    intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with('LexBot', intents, messages, locale='en-US', description=DESCRIPTION)
+
+    builder.put.assert_called_once_with('LexBot', [intent, intent], messages, locale='en-US', description=DESCRIPTION)
 
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
@@ -224,21 +227,24 @@ def test_create_put_slots_no_prefix(cfn_create_event, setup, monkeypatch):
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
 
-def test_create_puts(cfn_create_event, setup, monkeypatch):
+
+@mock.patch('models.intent.Intent.create_intent')
+def test_create_puts(mock_rename_intent, cfn_create_event, setup, monkeypatch):
     """ test_create_puts_bot"""
     context, builder, _ = setup
 
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
 
     patch_builder(context, builder, monkeypatch)
 
     response = app.create(cfn_create_event, context)
+
     messages = cfn_create_event['ResourceProperties']['messages']
-    intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with(BOT_NAME, intents, messages, locale='en-US', description=DESCRIPTION)
-
+    builder.put.assert_called_once_with(BOT_NAME, [intent, intent], messages, locale='en-US', description=DESCRIPTION)
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
@@ -257,7 +263,8 @@ def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
     slot_builder.put_slot_type.assert_called_once_with('pythontestpizzasize', synonyms=SYNONYMS)
     assert response['BotName'] == BOT_NAME
 
-def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.create_intent')
+def test_update_puts_no_prefix(mock_rename_intent, cfn_create_event, setup, monkeypatch):
     """ test_update_puts_bot"""
     context, builder, _ = setup
     cfn_create_event['ResourceProperties'].pop('NamePrefix')
@@ -265,36 +272,45 @@ def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
     cfn_create_event['ResourceProperties'].pop('slotTypes')
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
 
     patch_builder(context, builder, monkeypatch)
 
     response = app.update(cfn_create_event, context)
 
     messages = cfn_create_event['ResourceProperties']['messages']
-    intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with('LexBot', intents, messages, locale='en-US', description=DESCRIPTION)
+    builder.put.assert_called_once_with('LexBot',
+                                        [intent, intent],
+                                        messages, locale='en-US',
+                                        description=DESCRIPTION)
 
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
 
 
-def test_update_puts(cfn_create_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.create_intent')
+def test_update_puts(mock_rename_intent, cfn_create_event, setup, monkeypatch):
     """ test_update_puts_bot"""
     context, builder, _ = setup
 
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
 
     patch_builder(context, builder, monkeypatch)
 
     response = app.update(cfn_create_event, context)
 
     messages = cfn_create_event['ResourceProperties']['messages']
-    intents =  cfn_create_event['ResourceProperties']['intents']
 
-    builder.put.assert_called_once_with(BOT_NAME, intents, messages, locale='en-US', description=DESCRIPTION)
-    
+    builder.put.assert_called_once_with(BOT_NAME,
+                                        [intent, intent],
+                                        messages, locale='en-US',
+                                        description=DESCRIPTION)
+
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 

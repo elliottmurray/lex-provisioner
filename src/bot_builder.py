@@ -20,7 +20,6 @@ class LexBotBuilder(LexHelper):
     LOCALE = 'en-US'
 
     """Create/Update different elements that make up a Lex bot"""
-
     def __init__(self, logger, context, lex_sdk=None, intent_builder=None):
         self._logger = logger
         self._context = context
@@ -114,13 +113,10 @@ class LexBotBuilder(LexHelper):
 
         self._logger.info('Successfully deleted bot and associated resources')
 
-
-    def _put_intents(self, bot_name, intent_definitions):
+    def _put_intents(self, bot_name, intents):
         intent_versions = []
-        for intent_definition in intent_definitions:
-            intent = Intent.create_intent(bot_name, intent_definition)
-
-            # slots = SlotBuilder(self._logger, self._context).get_slots(intent_definition.get('slots'))
+        for intent in intents:
+            # intent = Intent.create_intent(bot_name, intent_definition)
             intent_versions.append(
                 self._intent_builder.put_intent(intent)
             )
