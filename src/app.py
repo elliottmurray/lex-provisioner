@@ -7,6 +7,8 @@ import os
 import crhelper
 from bot_builder import LexBotBuilder
 from slot_builder import SlotBuilder
+from models.intent import Intent
+
 # pylint: enable=import-error
 
 # initialise logger
@@ -116,16 +118,23 @@ def create(event, context):
     """
     slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(context)
-    slot_types = event.get('ResourceProperties').get('slotTypes')
+    resources = event.get('ResourceProperties')
+    slot_types = resources.get('slotTypes')
     slot_types = [] if slot_types is None else slot_types
+    bot_name = _bot_name(event)
 
     for slot_type in slot_types:
         name = _slot_type_name(event, slot_type)
         slot_builder.put_slot_type(_name_prefix(event) + name,
                                    synonyms=slot_types[name])
+    messages = resources.get('messages')
 
-    bot_put_response = lex_bot_builder.put(_bot_name(event),
-                                           event.get('ResourceProperties'))
+    intents = []
+    for json_intent in resources.get('intents'):
+      intents.append(Intent.create_intent(bot_name, json_intent))
+
+    bot_put_response = lex_bot_builder.put(bot_name, intents, messages,
+        locale=resources.get('locale'), description=resources.get('description'))
 
     return dict(
         BotName=bot_put_response['name'],

@@ -9,6 +9,7 @@ from pytest_mock import mocker # pylint: disable=unused-import
 
 import app # pylint: disable=import-error
 import crhelper # pylint: disable=import-error,unused-import
+from models.intent import Intent
 
 # pylint: disable=redefined-outer-name
 PREFIX = 'pythontest'
@@ -16,6 +17,7 @@ BOT_NAME = PREFIX + 'LexBot'
 BOT_VERSION = '$LATEST'
 LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 SLOT_TYPE_NAME = "pizzasize"
+DESCRIPTION = "friendly AI chatbot overlord"
 SYNONYMS = {
       "thick": ["thick", "fat"],
       'thin': ['thin', 'light']
@@ -41,26 +43,36 @@ def cfn_event(event_type):
         "RequestId": "1234abcd-1234-123a-1ab9-123456bce9dc",
         "RequestType": event_type,
         "ResourceProperties": {
+            "name": "LexBot",
             "NamePrefix": PREFIX,
             "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
             "loglevel": "info",
-            "description": "friendly AI chatbot overlord",
+            "description": DESCRIPTION,
             "locale": 'en-US',
-            'clarification': {
-                'message': 'clarification statement'
+            'messages': {
+                'clarification': 'clarification statement',
+                'abortStatement': 'abort statement'
             },
-            'abortStatement': {
-                'message': 'abort statement'
-            },
-            "intents":[
-                {
-                    "Name": 'greeting',
-                    "CodehookArn": LAMBDA_ARN,
-                    "Utterances": ['greetings my friend', 'hello'],
-                    "maxAttempts": 3,
-                    "Plaintext": {
-                        "confirmation": 'a confirmation'
+            "intents": [
+              {
+                  "Name": 'greeting',
+                  "CodehookArn": LAMBDA_ARN,
+                  "Utterances": ['greetings my friend', 'hello'],
+                  "maxAttempts": 3,
+                  "Plaintext": {
+                      "confirmation": 'a confirmation'
+                  },
+                  "Slots": [
+                    {
+                      "Name": "name",
+                      "Utterances": [
+                        "I am {name}",
+                        "My name is {name}"
+                      ],
+                      "Type": "AMAZON.Person",
+                      "Prompt": "Great thanks, please enter your name."
                     }
+                  ]
                 },
                 {
                     "Name": 'farewell',
@@ -148,24 +160,36 @@ def mock_context(mocker):
         'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
     return context
 
-def test_create_put_bot_no_prefix(cfn_create_event, setup, monkeypatch):
-    """ test_create_puts_bot"""
-    context, builder, _ = setup
-
-    cfn_create_event['ResourceProperties'].pop('NamePrefix')
-    cfn_create_event['ResourceProperties'].pop('slotTypes')
-    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
-
-    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
-
+def patch_builder(context, builder, monkeypatch):
     def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
 
-    response = app.create(cfn_create_event, context)
+def patch_slot_builder(context, slot_builder, monkeypatch):
+    def builder_slot_stub(context): # pylint: disable=unused-argument
+        return slot_builder
 
-    builder.put.assert_called_once_with('LexBot', cfn_create_event['ResourceProperties'])
+    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+
+@mock.patch('models.intent.Intent.create_intent')
+def test_create_put_bot_no_prefix(mock_rename_intent, cfn_create_event, setup, monkeypatch):
+    """ test_create_puts_bot"""
+    context, builder, _ = setup
+    cfn_create_event['ResourceProperties'].pop('NamePrefix')
+    cfn_create_event['ResourceProperties'].pop('slotTypes')
+
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
+
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
+    patch_builder(context, builder, monkeypatch)
+
+    response = app.create(cfn_create_event, context)
+    messages = cfn_create_event['ResourceProperties']['messages']
+
+
+    builder.put.assert_called_once_with('LexBot', [intent, intent], messages, locale='en-US', description=DESCRIPTION)
 
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
@@ -174,44 +198,53 @@ def test_create_put_slottypes_no_prefix(cfn_create_event, setup, monkeypatch):
     """ test_create_put_slottypes_no_prefix"""
     context, builder, slot_builder = setup
     cfn_create_event['ResourceProperties'].pop('NamePrefix')
-    cfn_create_event['ResourceProperties']['name'] = 'LexBot'
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
 
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    def builder_slot_stub(context): # pylint: disable=unused-argument
-        return slot_builder
-
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
-    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+    patch_builder(context, builder, monkeypatch)
+    patch_slot_builder(context, slot_builder, monkeypatch)
 
     response = app.create(cfn_create_event, context)
     slot_builder.put_slot_type.assert_called_once_with('pizzasize', synonyms=SYNONYMS)
 
     assert response['BotName'] == 'LexBot'
 
-def test_create_puts(cfn_create_event, setup, monkeypatch):
+def test_create_put_slots_no_prefix(cfn_create_event, setup, monkeypatch):
+    """ test_create_puts_bot_slots_no_prefix"""
+    context, builder, _ = setup
+
+    cfn_create_event['ResourceProperties'].pop('NamePrefix')
+    cfn_create_event['ResourceProperties'].pop('slotTypes')
+
+    builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
+
+    patch_builder(context, builder, monkeypatch)
+
+    response = app.create(cfn_create_event, context)
+
+    assert response['BotName'] == 'LexBot'
+    assert response['BotVersion'] == BOT_VERSION
+
+
+@mock.patch('models.intent.Intent.create_intent')
+def test_create_puts(mock_rename_intent, cfn_create_event, setup, monkeypatch):
     """ test_create_puts_bot"""
     context, builder, _ = setup
 
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
 
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    patch_builder(context, builder, monkeypatch)
 
     response = app.create(cfn_create_event, context)
 
-    builder.put.assert_called_once_with(BOT_NAME,
-                                        cfn_create_event['ResourceProperties'])
+    messages = cfn_create_event['ResourceProperties']['messages']
 
+    builder.put.assert_called_once_with(BOT_NAME, [intent, intent], messages, locale='en-US', description=DESCRIPTION)
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
@@ -222,21 +255,16 @@ def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    def builder_slot_stub(context): # pylint: disable=unused-argument
-        return slot_builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
-    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+    patch_builder(context, builder, monkeypatch)
+    patch_slot_builder(context, slot_builder, monkeypatch)
 
     response = app.create(cfn_create_event, context)
 
     slot_builder.put_slot_type.assert_called_once_with('pythontestpizzasize', synonyms=SYNONYMS)
     assert response['BotName'] == BOT_NAME
 
-def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.create_intent')
+def test_update_puts_no_prefix(mock_rename_intent, cfn_create_event, setup, monkeypatch):
     """ test_update_puts_bot"""
     context, builder, _ = setup
     cfn_create_event['ResourceProperties'].pop('NamePrefix')
@@ -244,37 +272,44 @@ def test_update_puts_no_prefix(cfn_create_event, setup, monkeypatch):
     cfn_create_event['ResourceProperties'].pop('slotTypes')
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
 
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    patch_builder(context, builder, monkeypatch)
 
     response = app.update(cfn_create_event, context)
 
+    messages = cfn_create_event['ResourceProperties']['messages']
+
     builder.put.assert_called_once_with('LexBot',
-                                        cfn_create_event['ResourceProperties'])
+                                        [intent, intent],
+                                        messages, locale='en-US',
+                                        description=DESCRIPTION)
 
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
 
 
-def test_update_puts(cfn_create_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.create_intent')
+def test_update_puts(mock_rename_intent, cfn_create_event, setup, monkeypatch):
     """ test_update_puts_bot"""
     context, builder, _ = setup
 
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_rename_intent.return_value = intent
 
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
+    patch_builder(context, builder, monkeypatch)
 
     response = app.update(cfn_create_event, context)
 
+    messages = cfn_create_event['ResourceProperties']['messages']
+
     builder.put.assert_called_once_with(BOT_NAME,
-                                        cfn_create_event['ResourceProperties'])
+                                        [intent, intent],
+                                        messages, locale='en-US',
+                                        description=DESCRIPTION)
 
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
@@ -290,14 +325,8 @@ def test_delete(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.return_value = None
 
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    def builder_slot_stub(context): # pylint: disable=unused-argument
-        return slot_builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
-    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+    patch_builder(context, builder, monkeypatch)
+    patch_slot_builder(context, slot_builder, monkeypatch)
 
     app.delete(cfn_delete_event, context)
 
@@ -314,14 +343,8 @@ def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
 
     builder.delete.return_value = None
 
-    def builder_bot_stub(context): # pylint: disable=unused-argument
-        return builder
-
-    def builder_slot_stub(context): # pylint: disable=unused-argument
-        return slot_builder
-
-    monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
-    monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
+    patch_builder(context, builder, monkeypatch)
+    patch_slot_builder(context, slot_builder, monkeypatch)
 
     app.delete(cfn_delete_event, context)
 

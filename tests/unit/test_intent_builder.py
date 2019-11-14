@@ -9,7 +9,9 @@ import datetime
 from utils import ValidationError
 from intent_builder import IntentBuilder
 from lex_helper import LexHelper
+from models.intent import Intent
 
+SLOTS = 'dfd' #todo make this a slot
 aws_region = 'us-east-1'
 aws_account_id = '1234567789'
 CODEHOOKNAME = 'greetingCodehook'
@@ -64,7 +66,7 @@ def put_intent_request(bot_name, intent_name, utterances, plaintext=None):
     return {
         'name': intent_name,
         'description': "Intent {0} for {1}".format(intent_name, bot_name),
-        'slots': [],
+        # 'slots': [],
         'sampleUtterances': utterances,
         'confirmationPrompt': {
             'messages': [
@@ -226,10 +228,28 @@ def monkeypatch_account(monkeypatch):
 
 def test_create_intent_missing_rejection_plaintext(put_intent_response,
         codehook_uri, mocker, lex, aws_lambda, monkeypatch):
+    plaintext = {
+            "confirmation": 'some confirmation message'
+        }
+    intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                   UTTERANCES, SLOTS, plaintext=plaintext)
+
+    context = mock_context(mocker)
+    monkeypatch_account(monkeypatch)
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
+        intent_builder = IntentBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
+
+        with pytest.raises(Exception):
+            intent_builder.put_intent(intent)
+
+def test_create_intent_old_missing_rejection_plaintext(put_intent_response,
+        codehook_uri, mocker, lex, aws_lambda, monkeypatch):
    context = mock_context(mocker)
    monkeypatch_account(monkeypatch)
 
-   with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+   with Stubber(aws_lambda) as lambda_stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
         intent_builder = IntentBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
         plaintext = {
@@ -263,9 +283,9 @@ def test_create_intent_plaintext_conclusion(put_intent_response, codehook_uri, m
         put_request.update(put_request_conclusion(plaintext))
 
         stub_intent_creation(stubber, put_intent_response, put_request)
-
-        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, plaintext=plaintext)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
@@ -293,9 +313,9 @@ def test_create_intent_plaintext_followup(put_intent_response, codehook_uri, moc
         put_request.update(put_request_followUp(plaintext))
 
         stub_intent_creation(stubber, put_intent_response, put_request)
-
-        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, plaintext=plaintext)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
@@ -323,9 +343,9 @@ def test_update_intent_plaintext_conclusion(put_intent_response, codehook_uri, m
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        response = intent_builder.put_intent(BOT_NAME, INTENT_NAME,
-                codehook_uri,
-                UTTERANCES, plaintext=plaintext)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        response = intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
@@ -358,9 +378,9 @@ def test_update_intent_plaintext_followUp(put_intent_response, codehook_uri, moc
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        response = intent_builder.put_intent(BOT_NAME, INTENT_NAME,
-                codehook_uri,
-                UTTERANCES, plaintext=plaintext)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        response = intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
@@ -391,9 +411,9 @@ def test_create_intent_response(put_intent_response, codehook_uri, mocker,
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        response = intent_builder.put_intent(BOT_NAME, INTENT_NAME,
-                codehook_uri,
-                UTTERANCES, plaintext=plaintext)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        response = intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
@@ -423,8 +443,9 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, codehook_
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, plaintext=plaintext)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
@@ -453,8 +474,10 @@ def test_create_intent_conclusion_and_followUp_errors(put_intent_response, codeh
         stub_intent_creation(stubber, put_intent_response, put_request)
 
         with pytest.raises(Exception) as excinfo:
-            intent_builder.put_intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                    UTTERANCES, plaintext=plaintext)
+            intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+            intent_builder.put_intent(intent)
+
 
         assert "Can not have conclusion and followUpPrompt" in str(excinfo.value)
 
@@ -465,7 +488,7 @@ def test_delete_intent(lex, mocker, aws_lambda):
     context = mock_context(mocker)
     intent_builder = IntentBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
 
-    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+    with Stubber(lex) as stubber:
         stub_intent_get(stubber, INTENT_NAME)
         stub_intent_deletion(stubber, delete_intent_response, delete_request_1)
         stub_intent_get(stubber, INTENT_NAME_2)
@@ -482,7 +505,7 @@ def test_delete_deleted_intent(lex, mocker, aws_lambda):
     context = mock_context(mocker)
     intent_builder = IntentBuilder(Mock(), context, lex_sdk=lex, lambda_sdk=aws_lambda)
 
-    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
+    with Stubber(lex) as stubber:
         stub_not_found_get_request(stubber)
         stub_intent_deletion(stubber, delete_intent_response, delete_request_1)
         stub_not_found_get_request(stubber)

@@ -9,22 +9,49 @@ from unittest.mock import Mock
 
 from bot_builder import LexBotBuilder
 import crhelper
+from models.intent import Intent
 
 
 BOT_NAME = 'pythontestLexBot'
 BOT_VERSION = '$LATEST'
 LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 
-@pytest.fixture()
-def cfn_create_event():
-    """ Generates resource props for a CFN create Event"""
-    return resource_props("Create")
+DESCRIPTION = "friendly AI chatbot overlord"
+LOCALE = 'en-US'
 
+MESSAGES = {
+    'clarification': 'clarification statement',
+    'abortStatement': 'abort statement'
+}
 
 @pytest.fixture()
 def cfn_delete_event():
     """ Generates Custom CFN delete Event"""
     return resource_props("Delete")
+
+@pytest.fixture()
+def intent_defs():
+    """ Generates intents json"""
+    return [
+            {
+                "Name": 'greeting',
+                "CodehookArn": LAMBDA_ARN,
+                "Utterances": ['greetings my friend','hello'],
+                "maxAttempts": 3,
+                "Plaintext": {
+                    "confirmation": 'a confirmation'
+                }
+              },
+              {
+                "Name": 'farewell',
+                "CodehookArn": LAMBDA_ARN,
+                "Utterances": ['farewell my friend'],
+                "maxAttempts": 3,
+                "Plaintext": {
+                    "confirmation": 'a farewell confirmation'
+                }
+            }
+        ]
 
 def resource_props(event_type):
     """ Generates Custom CFN Event"""
@@ -35,11 +62,9 @@ def resource_props(event_type):
         "loglevel": "info",
         "description": "friendly AI chatbot overlord",
         "locale": 'en-US',
-        'clarification': {
-            'message': 'clarification statement'
-        },
-        'abortStatement': {
-            'message': 'abort statement'
+        'messages': {
+            'clarification': 'clarification statement',
+            'abortStatement': 'abort statement'
         },
         "intents":[
             {
@@ -110,13 +135,13 @@ def _get_bot_response():
         "lastUpdatedDate": 10012019
     }
 
-
 @pytest.fixture()
 def put_bot_response():
     """ put bot response """
+
     return {
         "name": "test bot",
-        "locale": 'en-US',
+        "locale": LOCALE,
         "checksum": 'rnd value',
         "abortStatement": {
             "messages": [
@@ -138,15 +163,19 @@ def put_bot_response():
             "responseCard": "string"
         },
         "createdDate": 10012019,
-        "description": "friendly AI chatbot overlord",
+        "description": DESCRIPTION,
         "failureReason": "a failure",
         "idleSessionTTLInSeconds": 300,
         "status": "READY",
         "version": "$LATEST"
     }
 
-def put_bot_request(bot_name, bot_props, put_bot_response, has_checksum=False):
+
+def put_bot_request(bot_name, intents, messages, has_checksum=False):
     """ put bot request """
+    json = []
+    for intent in intents:
+        json.append({'intentName': intent.intent_name, 'intentVersion': '$LATEST'})
 
     put_request = {
         'abortStatement': ANY,
@@ -155,26 +184,26 @@ def put_bot_request(bot_name, bot_props, put_bot_response, has_checksum=False):
             'maxAttempts': 1,
             'messages': [
                 {
-                    'content': bot_props['clarification']['message'],
+                    'content': messages['clarification'],
                     'contentType': 'PlainText'
                 }
             ]
         },
-        'description': put_bot_response['description'],
+        'description': ANY,
         'idleSessionTTLInSeconds': ANY,
         'name': bot_name,
         'intents': [
             {'intentName': 'greeting', 'intentVersion': '$LATEST'},
             {'intentName': 'farewell', 'intentVersion': '$LATEST'}
         ],
-        'locale': put_bot_response['locale'],
+        'locale': ANY,
         'processBehavior': 'BUILD'
     }
 
-    if(has_checksum):
-      put_request.update({
-                           'checksum': ANY,
-                        })
+    put_request['intents'] = json
+
+    if has_checksum:
+        put_request.update({'checksum': ANY})
     return put_request
 
 def get_bot_request():
@@ -197,7 +226,25 @@ def put_bot_version_interaction(bot_name, bot_version):
 
 def setup():
     """ setup function """
-    return  botocore.session.get_session().create_client('lex-models')
+    intent1 = Intent(BOT_NAME,
+                     'greeting',
+                     LAMBDA_ARN,
+                     ['farewell my friend'],
+                     None,
+                     max_attempts=3,
+                     plaintext={'confirmation': 'a greeting confirmation'})
+
+    intent2 = Intent(BOT_NAME,
+                     'farewell',
+                     LAMBDA_ARN,
+                     ['farewell my friend'],
+                     None,
+                     max_attempts=3,
+                     plaintext={'confirmation': 'a farewell confirmation'})
+
+
+    lex = botocore.session.get_session().create_client('lex-models')
+    return lex, [intent1, intent2]
 
 def stub_not_found_get_request(stubber):
     """stub not found get request"""
@@ -214,9 +261,9 @@ def put_intent_responses():
     return [put_intent_response_1, put_intent_response_2]
 
 def stub_put_intent(intent_builder):
-        intent_builder_instance = intent_builder.return_value
-        intent_builder_instance.put_intent.side_effect = put_intent_responses()
-        return intent_builder_instance
+    intent_builder_instance = intent_builder.return_value
+    intent_builder_instance.put_intent.side_effect = put_intent_responses()
+    return intent_builder_instance
 
 def stub_put_bot(stubber, put_bot_response, expected_put_params):
     """ stub put bot"""
@@ -227,18 +274,19 @@ def stub_put_bot(stubber, put_bot_response, expected_put_params):
                          create_bot_version_response, create_bot_version_params)
 
 def mock_context(mocker):
-        context = mocker.Mock()
-        context.aws_request_id = 12345
-        context.get_remaining_time_in_millis.return_value = 100000.0
-        context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
-        return context
+    """ mock context """
+    context = mocker.Mock()
+    context.aws_request_id = 12345
+    context.get_remaining_time_in_millis.return_value = 100000.0
+    context.invoked_function_arn = 'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
+    return context
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
-        mocker):
+def test_create_puts_bot(intent_builder, put_bot_response, mocker):
     """ test_create_puts_bot"""
-    lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event, put_bot_response)
+
+    lex, intents = setup()
+    expected_put_params = put_bot_request(BOT_NAME, intents, MESSAGES)
 
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
@@ -249,18 +297,22 @@ def test_create_puts_bot(intent_builder, cfn_create_event, put_bot_response,
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME, cfn_create_event)
+        response = bot_builder.put(BOT_NAME,
+                                   intents,
+                                   MESSAGES,
+                                   locale='en-US', description='test desc')
 
         assert response['name'] == BOT_NAME
         assert response['version'] == BOT_VERSION
         stubber.assert_no_pending_responses()
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, mocker):
+def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
     """ test_update_puts_bot"""
-    lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event,
-                                          put_bot_response, has_checksum=True)
+    lex, intents = setup()
+
+    expected_put_params = put_bot_request(BOT_NAME, intents, MESSAGES,
+                                          has_checksum=True)
 
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
@@ -269,23 +321,26 @@ def test_update_puts_bot(intent_builder, cfn_create_event, put_bot_response, moc
         stub_put_bot(stubber, put_bot_response, expected_put_params)
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
-                intent_builder=intent_builder_instance)
+                                    intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME, cfn_create_event)
+        response = bot_builder.put(BOT_NAME, intents,
+                                   MESSAGES,
+                                   locale='en-US', description='test desc')
 
         assert response['name'] == BOT_NAME
         assert response['version'] == BOT_VERSION
         stubber.assert_no_pending_responses()
 
+
 @mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called(intent_builder,
-                                  cfn_create_event,
                                   get_bot_response,
                                   put_bot_response,
                                   mocker):
     """ create put intent called test """
-    lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event, put_bot_response)
+    lex, intents = setup()
+
+    expected_put_params = put_bot_request(BOT_NAME, intents, MESSAGES)
 
     with Stubber(lex) as stubber:
         context = mock_context(mocker)
@@ -294,49 +349,20 @@ def test_create_put_intent_called(intent_builder,
         stub_put_bot(stubber, put_bot_response, expected_put_params)
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
-                intent_builder=intent_builder_instance)
-
-        response = bot_builder.put(BOT_NAME, cfn_create_event)
+                                    intent_builder=intent_builder_instance)
+        bot_builder.put(BOT_NAME,
+                        intents,
+                        MESSAGES,
+                        locale='en-US', description='test desc')
 
         assert intent_builder_instance.put_intent.call_count == 2
-        intent_builder_instance.put_intent.assert_called_with(BOT_NAME,
-                'farewell', LAMBDA_ARN,
-                ['farewell my friend'],
-                max_attempts=3,
-                plaintext={'confirmation': 'a farewell confirmation'})
-
-@mock.patch('bot_builder.IntentBuilder')
-def test_create_put_intent_called_error_no_utterance(intent_builder,
-                                  cfn_create_event,
-                                  get_bot_response,
-                                  put_bot_response,
-                                  mocker):
-    """ create put intent called test """
-    lex = setup()
-    expected_put_params = put_bot_request(BOT_NAME, cfn_create_event, put_bot_response)
-
-    with Stubber(lex) as stubber:
-        context = mocker.Mock()
-        intent_builder_instance = stub_put_intent(intent_builder)
-
-        stub_not_found_get_request(stubber)
-        stub_put_bot(stubber, put_bot_response, expected_put_params)
-        bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
-                intent_builder=intent_builder_instance)
-
-        del cfn_create_event['intents'][0]['Utterances']
-        del cfn_create_event['intents'][1]['Utterances']
-
-        with pytest.raises(Exception) as excinfo:
-            bot_builder.put(BOT_NAME, cfn_create_event)
-
-        assert "Utterances missing in intents" in str(excinfo.value)
+        intent_builder_instance.put_intent.assert_called_with(intents[1])
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, mocker):
     """ delete bot called test """
 
-    lex = setup()
+    lex, _ = setup()
     delete_intent_response = {'test':'response'}
 
     delete_response = {'test':'bot response'}
@@ -346,18 +372,19 @@ def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, m
         intent_builder_instance.delete_intents.return_value = delete_intent_response
 
         stub_get_request(stubber)
-        stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
-
+        stubber.add_response('delete_bot', {}, {'name':BOT_NAME})
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, cfn_delete_event)
+        stubber.assert_no_pending_responses()
+
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_response, mocker):
     """ delete bot does not fail test """
-    lex = setup()
+    lex, intents = setup()
     delete_intent_response = {'test':'response'}
 
     with Stubber(lex) as stubber:
@@ -368,17 +395,18 @@ def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_res
         stub_not_found_get_request(stubber)
         stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
 
-
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, cfn_delete_event)
+
+        assert intent_builder_instance.delete_intents.call_count == 1
 
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_response,
         mocker):
-    lex = setup()
+    lex, _ = setup()
     delete_intent_response = {'test':'response'}
     delete_response = {'test':'bot response'}
 
@@ -394,8 +422,8 @@ def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_res
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, cfn_delete_event)
 
         assert intent_builder_instance.delete_intents.call_count == 1
         intent_builder_instance.delete_intents.assert_called_with(['greeting','farewell'])
-
+        stubber.assert_no_pending_responses()
