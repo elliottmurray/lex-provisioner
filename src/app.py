@@ -109,6 +109,12 @@ def _bot_name(event):
 def _slot_type_name(event, slot_type):
    return slot_type
 
+def _extract_intents(bot_name, resources):
+    intents = []
+    for json_intent in resources.get('intents'):
+      intents.append(Intent.create_intent(bot_name, json_intent))
+    return intents
+
 def create(event, context):
     """
     Handle Create events
@@ -128,10 +134,7 @@ def create(event, context):
         slot_builder.put_slot_type(_name_prefix(event) + name,
                                    synonyms=slot_types[name])
     messages = resources.get('messages')
-
-    intents = []
-    for json_intent in resources.get('intents'):
-      intents.append(Intent.create_intent(bot_name, json_intent))
+    intents = _extract_intents(bot_name, resources)
 
     bot_put_response = lex_bot_builder.put(bot_name, intents, messages,
         locale=resources.get('locale'), description=resources.get('description'))
@@ -157,10 +160,12 @@ def delete(event, context):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
+    bot_name =  _bot_name(event)
+    resources = event.get('ResourceProperties')
+    intents = _extract_intents(bot_name, resources)
     slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(context)
-    lex_bot_builder.delete(_bot_name(event),
-                           event.get('ResourceProperties'))
+    lex_bot_builder.delete(bot_name, intents)
 
     slot_types = event.get('ResourceProperties').get('slotTypes')
     slot_types = [] if slot_types is None else slot_types

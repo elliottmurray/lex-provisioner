@@ -90,7 +90,7 @@ class LexBotBuilder(LexHelper):
         bot_response = self._put_bot(bot_name, bot_properties)
         return bot_response
 
-    def delete(self, bot_name, resource_properties):
+    def delete(self, bot_name, intents):
         """Delete bot, intents, and slot-types"""
         delete_failed = False
         # TODO what about deleting published version(s) of the bot?
@@ -101,8 +101,7 @@ class LexBotBuilder(LexHelper):
             delete_failed = True
 
         try:
-            intents_definition = resource_properties['intents']
-            self._delete_intents(bot_name, intents_definition)
+            self._delete_intents(bot_name, intents)
         except Exception as ex:
             traceback.print_exc(ex)
             delete_failed = True
@@ -123,8 +122,9 @@ class LexBotBuilder(LexHelper):
 
         return intent_versions
 
-    def _delete_intents(self, bot_name, intent_definitions):
-        intent_names = [intent.get('Name') for intent in intent_definitions]
+    def _delete_intents(self, bot_name, intents):
+        intent_names = [intent.intent_name for intent in intents]
+        # todo fix this so it just passes the intent object
 
         self._logger.info(intent_names)
         self._intent_builder.delete_intents(intent_names)

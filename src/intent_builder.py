@@ -50,14 +50,14 @@ class IntentBuilder(LexHelper, object):
                                                                checksum=checksum)
 
         self._logger.info('Created new intent: %s', version_response)
-        return { "intentName": version_response['name'],
-                "intentVersion": version_response['version']}    
+        return {"intentName": version_response['name'],
+                "intentVersion": version_response['version']}
 
-    def delete_intents(self, intents_definition, max_attempts=2):
+    def delete_intents(self, intents, max_attempts=2):
         '''Delete all intents in our tuple'''
 
         self._logger.info('delete all intents')
-        for intent in intents_definition:
+        for intent in intents:
             if(self._intent_exists(intent)):
                 self._delete_lex_resource(self._lex_sdk.delete_intent, 'delete_intent',
                         name=intent)

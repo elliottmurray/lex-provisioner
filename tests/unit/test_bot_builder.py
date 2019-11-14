@@ -25,68 +25,28 @@ MESSAGES = {
 }
 
 @pytest.fixture()
-def cfn_delete_event():
-    """ Generates Custom CFN delete Event"""
-    return resource_props("Delete")
-
-@pytest.fixture()
 def intent_defs():
     """ Generates intents json"""
     return [
-            {
-                "Name": 'greeting',
-                "CodehookArn": LAMBDA_ARN,
-                "Utterances": ['greetings my friend','hello'],
-                "maxAttempts": 3,
-                "Plaintext": {
-                    "confirmation": 'a confirmation'
-                }
-              },
-              {
-                "Name": 'farewell',
-                "CodehookArn": LAMBDA_ARN,
-                "Utterances": ['farewell my friend'],
-                "maxAttempts": 3,
-                "Plaintext": {
-                    "confirmation": 'a farewell confirmation'
-                }
-            }
-        ]
-
-def resource_props(event_type):
-    """ Generates Custom CFN Event"""
-
-    return {
-        "NamePrefix": "pythontest",
-        "ServiceToken": "arn:aws:lambda:us-east-1:123456789123:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
-        "loglevel": "info",
-        "description": "friendly AI chatbot overlord",
-        "locale": 'en-US',
-        'messages': {
-            'clarification': 'clarification statement',
-            'abortStatement': 'abort statement'
-        },
-        "intents":[
-            {
-                "Name": 'greeting',
-                "CodehookArn": LAMBDA_ARN,
-                "Utterances": ['greetings my friend','hello'],
-                "maxAttempts": 3,
-                "Plaintext": {
-                    "confirmation": 'a confirmation'
-                }
-              },
-              {
-                "Name": 'farewell',
-                "CodehookArn": LAMBDA_ARN,
-                "Utterances": ['farewell my friend'],
-                "maxAttempts": 3,
-                "Plaintext": {
-                    "confirmation": 'a farewell confirmation'
-                }
-            }
-        ]
-    }
+               {
+                   "Name": 'greeting',
+                   "CodehookArn": LAMBDA_ARN,
+                   "Utterances": ['greetings my friend','hello'],
+                   "maxAttempts": 3,
+                   "Plaintext": {
+                       "confirmation": 'a confirmation'
+                   }
+                 },
+                 {
+                   "Name": 'farewell',
+                   "CodehookArn": LAMBDA_ARN,
+                   "Utterances": ['farewell my friend'],
+                   "maxAttempts": 3,
+                   "Plaintext": {
+                       "confirmation": 'a farewell confirmation'
+                 }
+               }
+            ]
 
 @pytest.fixture()
 def get_bot_response():
@@ -359,10 +319,10 @@ def test_create_put_intent_called(intent_builder,
         intent_builder_instance.put_intent.assert_called_with(intents[1])
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, mocker):
+def test_delete_bot_called(intent_builder, put_bot_response, mocker):
     """ delete bot called test """
 
-    lex, _ = setup()
+    lex, intents = setup()
     delete_intent_response = {'test':'response'}
 
     delete_response = {'test':'bot response'}
@@ -377,12 +337,12 @@ def test_delete_bot_called(intent_builder, cfn_delete_event, put_bot_response, m
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, intents)
         stubber.assert_no_pending_responses()
 
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_response, mocker):
+def test_delete_bot_on_deleted_bot(intent_builder, put_bot_response, mocker):
     """ delete bot does not fail test """
     lex, intents = setup()
     delete_intent_response = {'test':'response'}
@@ -393,20 +353,19 @@ def test_delete_bot_on_deleted_bot(intent_builder, cfn_delete_event, put_bot_res
         intent_builder_instance.delete_intents.return_value = delete_intent_response
 
         stub_not_found_get_request(stubber)
-        stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
+        stubber.add_response('delete_bot', {}, {'name':BOT_NAME})
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, intents)
 
         assert intent_builder_instance.delete_intents.call_count == 1
 
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_response,
-        mocker):
-    lex, _ = setup()
+def test_delete_bot_intents_called(intent_builder, put_bot_response, mocker):
+    lex, intents = setup()
     delete_intent_response = {'test':'response'}
     delete_response = {'test':'bot response'}
 
@@ -416,13 +375,13 @@ def test_delete_bot_intents_called(intent_builder, cfn_delete_event, put_bot_res
         intent_builder_instance.delete_intents.return_value = delete_intent_response
 
         stub_get_request(stubber)
-        stubber.add_response('delete_bot', {},  {'name':BOT_NAME})
+        stubber.add_response('delete_bot', {}, {'name':BOT_NAME})
 
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        bot_builder.delete(BOT_NAME, cfn_delete_event)
+        bot_builder.delete(BOT_NAME, intents)
 
         assert intent_builder_instance.delete_intents.call_count == 1
         intent_builder_instance.delete_intents.assert_called_with(['greeting','farewell'])

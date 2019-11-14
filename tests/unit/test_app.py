@@ -160,6 +160,12 @@ def mock_context(mocker):
         'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
     return context
 
+def _extract_intents(bot_name, resources):
+    intents = []
+    for json_intent in resources.get('intents'):
+      intents.append(Intent.create_intent(bot_name, json_intent))
+    return intents
+
 def patch_builder(context, builder, monkeypatch):
     def builder_bot_stub(context): # pylint: disable=unused-argument
         return builder
@@ -319,35 +325,40 @@ def test_update_deleted_slot(cfn_create_event, setup, monkeypatch):
     context, builder, _ = setup
     response = app.update(cfn_create_event, context)
 
-def test_delete(cfn_delete_event, setup, monkeypatch):
+
+@mock.patch('models.intent.Intent.create_intent')
+def test_delete(mock_intent_cls, cfn_delete_event, setup, monkeypatch):
     """ test_delete """
     context, builder, slot_builder = setup
 
-    builder.delete.return_value = None
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_intent_cls.return_value = intent
+
+    #intents = _extract_intents(BOT_NAME, cfn_delete_event['ResourceProperties'])
 
     patch_builder(context, builder, monkeypatch)
     patch_slot_builder(context, slot_builder, monkeypatch)
 
     app.delete(cfn_delete_event, context)
 
-    builder.delete.assert_called_once_with(BOT_NAME,
-                                           cfn_delete_event['ResourceProperties'])
+    builder.delete.assert_called_once_with(BOT_NAME, [intent, intent])
+
     slot_builder.delete_slot_type.assert_called_once_with(PREFIX + SLOT_TYPE_NAME)
 
 
-def test_delete_no_prefix(cfn_delete_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.create_intent')
+def test_delete_no_prefix(mock_intent_cls, cfn_delete_event, setup, monkeypatch):
     """ test_delete_no_prefix """
     context, builder, slot_builder = setup
     cfn_delete_event['ResourceProperties'].pop('NamePrefix')
     cfn_delete_event['ResourceProperties']['name'] = 'LexBot'
-
-    builder.delete.return_value = None
+    intent = Intent('a', 'b', 'c', 'd', 'e')
+    mock_intent_cls.return_value = intent
 
     patch_builder(context, builder, monkeypatch)
     patch_slot_builder(context, slot_builder, monkeypatch)
 
     app.delete(cfn_delete_event, context)
 
-    builder.delete.assert_called_once_with("LexBot",
-                                           cfn_delete_event['ResourceProperties'])
+    builder.delete.assert_called_once_with("LexBot", [intent, intent])
     slot_builder.delete_slot_type.assert_called_once_with(SLOT_TYPE_NAME)
