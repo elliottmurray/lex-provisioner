@@ -362,7 +362,6 @@ def test_delete_bot_on_deleted_bot(intent_builder, put_bot_response, mocker):
 
         assert intent_builder_instance.delete_intents.call_count == 1
 
-
 @mock.patch('bot_builder.IntentBuilder')
 def test_delete_bot_intents_called(intent_builder, put_bot_response, mocker):
     lex, intents = setup()

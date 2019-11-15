@@ -48,11 +48,8 @@ def test_create_intent_default_max_attempts(intent_defs):
     assert intent.attrs['max_attempts'] == 3
     assert intent.attrs['plaintext'] == { "confirmation": 'a confirmation' }
 
-def test_create_intent_fails(intent_defs):
+def test_validate_intent_fails(intent_defs):
     with pytest.raises(Exception) as excinfo:
-        Intent.create_intent('botname', intent_defs[1])
-
+        Intent.create_intent('botname', intent_defs[1]).validate_intent()
 
     assert "Utterances missing in intents" in str(excinfo.value)
-    
-    

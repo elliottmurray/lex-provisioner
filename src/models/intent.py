@@ -7,9 +7,9 @@ class Intent(object):
         self.utterances = utterances
         self.slots = slots
         self.attrs = kwargs
-        self._validate_intent()
+#        self._validate_intent()
 
-    def _validate_intent(self):
+    def validate_intent(self):
         if self.utterances is None:
             raise Exception("Utterances missing in intents")
 

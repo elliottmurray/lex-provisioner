@@ -178,8 +178,10 @@ def patch_slot_builder(context, slot_builder, monkeypatch):
 
     monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
+
 @mock.patch('models.intent.Intent.create_intent')
-def test_create_put_bot_no_prefix(mock_rename_intent, cfn_create_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.validate_intent')
+def test_create_put_bot_no_prefix(mock_rename_intent, validate_intent, cfn_create_event, setup, monkeypatch):
     """ test_create_puts_bot"""
     context, builder, _ = setup
     cfn_create_event['ResourceProperties'].pop('NamePrefix')
@@ -194,9 +196,9 @@ def test_create_put_bot_no_prefix(mock_rename_intent, cfn_create_event, setup, m
     response = app.create(cfn_create_event, context)
     messages = cfn_create_event['ResourceProperties']['messages']
 
-
     builder.put.assert_called_once_with('LexBot', [intent, intent], messages, locale='en-US', description=DESCRIPTION)
 
+    validate_intent.assert_called_once
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
 

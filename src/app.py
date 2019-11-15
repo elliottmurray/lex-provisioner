@@ -115,6 +115,9 @@ def _extract_intents(bot_name, resources):
       intents.append(Intent.create_intent(bot_name, json_intent))
     return intents
 
+def _validate_intents(intents):
+    [intent.validate_intent() for intent in intents]
+
 def create(event, context):
     """
     Handle Create events
@@ -135,6 +138,7 @@ def create(event, context):
                                    synonyms=slot_types[name])
     messages = resources.get('messages')
     intents = _extract_intents(bot_name, resources)
+    _validate_intents(intents)
 
     bot_put_response = lex_bot_builder.put(bot_name, intents, messages,
         locale=resources.get('locale'), description=resources.get('description'))
