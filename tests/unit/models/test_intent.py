@@ -18,17 +18,7 @@ def intent_defs():
             "Plaintext": {
                 "confirmation": 'a confirmation'
             },
-            "Slots": [
-                {
-                "Name": "name",
-                "Utterances": [
-                    "I am {name}",
-                    "My name is {name}"
-                ],
-                "Type": "AMAZON.Person",
-                "Prompt": "Great thanks, please enter your name."
-                }
-            ]
+            "Slots": 'dummy slot data'
         },
         {
             "Name": 'farewell',
@@ -41,7 +31,10 @@ def intent_defs():
     ]
 
 def test_create_intent(intent_defs):
+    del intent_defs[0]['Slots']
+
     intent = Intent.create_intent('botname', intent_defs[0])
+
     assert intent.bot_name == 'botname'
     assert intent.intent_name == 'greeting'
     assert intent.utterances == ['greetings my friend','hello']    
@@ -54,10 +47,15 @@ def test_create_intent_slots(create_validate_slots, intent_defs):
     intent = Intent.create_intent('botname', intent_defs[0])
     
     assert intent.slots == ['dummy']
+    create_validate_slots.assert_called_with('dummy slot data')
+
 
 def test_create_intent_default_max_attempts(intent_defs):
     intent_def = intent_defs[0]
+    
+    del intent_def['Slots']
     del intent_def['maxAttempts']
+
     intent = Intent.create_intent('botname', intent_def)
     assert intent.bot_name == 'botname'
     assert intent.intent_name == 'greeting'
