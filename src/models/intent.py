@@ -1,3 +1,5 @@
+from models.slot import Slot
+
 class Intent(object):
 
     def __init__(self, bot_name, intent_name, codehook_arn, utterances, slots, **kwargs):
@@ -28,8 +30,9 @@ class Intent(object):
     @classmethod
     def create_intent(cls, bot_name, intent_definition):
         intent_name, codehook_arn, max_attempts = cls._extract_intent_attributes(intent_definition)
-        utterances = intent_definition.get('Utterances')
-        slots = intent_definition.get('slots')
+        utterances = intent_definition.get('Utterances')        
+        slots = Slot.create_validated_slots(intent_definition.get('Slots'))
+        
         max_attempts = intent_definition.get('maxAttempts') if intent_definition.get('maxAttempts') else 3
         return Intent(bot_name, intent_name, codehook_arn, utterances, slots, max_attempts=max_attempts, plaintext=intent_definition.get('Plaintext'))
 
