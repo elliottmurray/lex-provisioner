@@ -136,7 +136,7 @@ class IntentBuilder(LexHelper, object):
             request.update(self._get_confirmation_message(plaintext, max_attempts))
         elif not (plaintext.get('rejection') is None and plaintext.get('confirmation')
                 is None):
-            raise ValidationError("Must have both rejection and confirmation or" +
+            raise ValidationError("Must have both rejection and confirmation or " +
                     "neither. Had ".format(plaintext))
 
     def _put_request_followUp(self, request, plaintext, max_attempts):
@@ -206,8 +206,7 @@ class IntentBuilder(LexHelper, object):
             # If the intent needs to invoke a lambda function, we must give it permission to do so
             # before creating the intent.
             self._logger.info("Codehook arn: %s", intent.codehook_arn)
-            _, aws_region = self._get_aws_details()
-            arn_tokens = intent.codehook_arn.split(':')
+            _, aws_region = self._get_aws_details()            
 
             # function_name = arn_tokens[5]
             statement_id = 'lex-' + aws_region + '-' + intent.intent_name
