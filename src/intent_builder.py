@@ -136,7 +136,7 @@ class IntentBuilder(LexHelper, object):
             request.update(self._get_confirmation_message(plaintext, max_attempts))
         elif not (plaintext.get('rejection') is None and plaintext.get('confirmation')
                 is None):
-            raise ValidationError("Must have both rejection and confirmation or" +
+            raise ValidationError("Must have both rejection and confirmation or " +
                     "neither. Had ".format(plaintext))
 
     def _put_request_followUp(self, request, plaintext, max_attempts):
@@ -169,16 +169,34 @@ class IntentBuilder(LexHelper, object):
                 'responseCard': 'string'
             },
         })
+    def _put_intent_slot_request(self, intent):
+        slots_json = []
+        for slot in intent.slots:
+            slot_json = {
+                'name': slot.name,
+                'sampleUtterances': slot.utterances,
+                'slotType': slot.slot_type,
+                'slotTypeVersion': '$LATEST',
+                'slotConstraint': 'Required',
+                'valueElicitationPrompt': {
+                    'messages': [{                    
+                        'content': slot.prompt,
+                        'contentType': 'PlainText'                  
+                    }],
+                    'maxAttempts': 3
+                }
+            }
+            
+            if 'AMAZON' in slot.slot_type:
+                del slot_json['slotTypeVersion']            
+            slots_json.append(slot_json)
+
+        return slots_json
 
     def put_intent_request(self, intent):
-# for when fulfillment activity needs a codehook this will be needed
-        #utterances = [ 'a test utterance', 'another one']
-# bot_name, intent_name, codehook_uri,
-#             utterances, max_attempts=3, plaintext=None
         request = {
             'name': intent.intent_name,
             'description': "Intent {0} for {1}".format(intent.intent_name, intent.bot_name),
-            # 'slots': [],
             'sampleUtterances': intent.utterances,
             'dialogCodeHook': {
                 'uri': intent.codehook_arn,
@@ -188,6 +206,9 @@ class IntentBuilder(LexHelper, object):
                 'type': 'ReturnIntent'
            }
         }
+
+        slots_json = self._put_intent_slot_request(intent)
+        if (len(slots_json) > 0): request.update({"slots": slots_json})
 
         plaintext= intent.attrs['plaintext']
         max_attempts = intent.attrs.get('max_attempts')
@@ -206,8 +227,7 @@ class IntentBuilder(LexHelper, object):
             # If the intent needs to invoke a lambda function, we must give it permission to do so
             # before creating the intent.
             self._logger.info("Codehook arn: %s", intent.codehook_arn)
-            _, aws_region = self._get_aws_details()
-            arn_tokens = intent.codehook_arn.split(':')
+            _, aws_region = self._get_aws_details()            
 
             # function_name = arn_tokens[5]
             statement_id = 'lex-' + aws_region + '-' + intent.intent_name

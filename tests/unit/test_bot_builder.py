@@ -325,7 +325,6 @@ def test_delete_bot_called(intent_builder, put_bot_response, mocker):
     lex, intents = setup()
     delete_intent_response = {'test':'response'}
 
-    delete_response = {'test':'bot response'}
     with Stubber(lex) as stubber:
         context = mocker.Mock()
         intent_builder_instance = intent_builder.return_value
