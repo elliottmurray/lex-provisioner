@@ -41,16 +41,19 @@ def test_create_intent(intent_defs):
     assert intent.attrs['max_attempts'] == 5
     assert intent.attrs['plaintext'] == { "confirmation": 'a confirmation' }
 
-@mock.patch('models.slot.Slot.create_validated_slots')
-def test_create_intent_slots(create_validate_slots, intent_defs):    
-    create_validate_slots.return_value = ['dummy']
-    intent = Intent.create_intent('botname', intent_defs[0])
+@mock.patch('models.slot.Slot.validate_slot')
+def test_validate_intent_slots(validate_slot, intent_defs):    
+    intent_def = intent_defs[0]
+    del intent_def['Slots']
+
+    intent = Intent.create_intent('botname', intent_def)
+    intent.slots = [Slot('a','b', 'c', [])]
+    intent.validate_intent()
     
-    assert intent.slots == ['dummy']
-    create_validate_slots.assert_called_with('dummy slot data')
+    validate_slot.assert_called_once()
 
 
-def test_create_intent_default_max_attempts(intent_defs):
+def test_create_intent_default_max_attempts(intent_defs, mocker):
     intent_def = intent_defs[0]
     
     del intent_def['Slots']
