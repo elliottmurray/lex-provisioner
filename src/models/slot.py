@@ -18,13 +18,6 @@ class Slot(object):
         return False
 
     @classmethod
-    def create_validated_slots(cls, slot_definitions):
-        slots = Slot.create_slots(slot_definitions)
-        [slot.validate_slot() for slot in slots]
-
-        return slots
-
-    @classmethod
     def create_slots(cls, slot_definitions):
         slots = []
         if (slot_definitions == None): return slots             

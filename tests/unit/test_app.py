@@ -233,7 +233,7 @@ def test_create_puts(mock_create_intent, cfn_create_event, setup, monkeypatch):
 
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
-    intent = Intent('a', 'b', 'c', 'd', 'e')
+    intent = Intent('a', 'b', 'c', 'd', None)
     mock_create_intent.return_value = intent
 
     patch_builder(context, builder, monkeypatch)
@@ -268,7 +268,7 @@ def test_update_puts_no_prefix(mock_create_intent, cfn_create_no_prefix_event, s
     cfn_create_no_prefix_event['ResourceProperties'].pop('slotTypes')
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
-    intent = Intent('a', 'b', 'c', 'd', 'e')
+    intent = Intent('a', 'b', 'c', 'd', None)
     mock_create_intent.return_value = intent
     patch_builder(context, builder, monkeypatch)
 
@@ -292,7 +292,7 @@ def test_update_puts(mock_rename_intent, cfn_create_event, setup, monkeypatch):
 
     cfn_create_event['ResourceProperties'].pop('slotTypes')
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
-    intent = Intent('a', 'b', 'c', 'd', 'e')
+    intent = Intent('a', 'b', 'c', 'd', None)
     mock_rename_intent.return_value = intent
 
     patch_builder(context, builder, monkeypatch)
@@ -320,10 +320,8 @@ def test_delete(mock_intent_cls, cfn_delete_event, setup, monkeypatch):
     """ test_delete """
     context, builder, slot_builder = setup
 
-    intent = Intent('a', 'b', 'c', 'd', 'e')
+    intent = Intent('a', 'b', 'c', 'd', None)
     mock_intent_cls.return_value = intent
-
-    #intents = _extract_intents(BOT_NAME, cfn_delete_event['ResourceProperties'])
 
     patch_builder(context, builder, monkeypatch)
     patch_slot_builder(context, slot_builder, monkeypatch)

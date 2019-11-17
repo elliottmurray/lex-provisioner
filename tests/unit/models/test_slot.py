@@ -38,6 +38,7 @@ def test_create_slot(slots_defs):
 
 def test_validate_slot_fails(invalid_slots_defs):
     with pytest.raises(Exception) as excinfo:
-        slots = Slot.create_validated_slots(invalid_slots_defs)        
+        slots = Slot.create_slots(invalid_slots_defs)
+        slots[0].validate_slot()
 
     assert "Utterances missing in slot" in str(excinfo.value)
