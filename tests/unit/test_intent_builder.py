@@ -96,9 +96,9 @@ def put_intent_request(bot_name, intent_name, utterances, plaintext=None):
     }
 
 def put_intent_slot_request(intent):
-    slot_json = []
+    slots_json = []
     for slot in intent.slots:
-        slot_json.append({
+        slot_json = {
             'name': slot.name,
             'sampleUtterances': slot.utterances,
             'slotType': slot.slot_type,
@@ -111,11 +111,14 @@ def put_intent_slot_request(intent):
                 }],
                 'maxAttempts': 3
             }
-        })
+        }
+        if 'AMAZON' in slot.slot_type:        
+            del slot_json['slotTypeVersion']
+        slots_json.append(slot_json)
 
     request = put_intent_request(intent.bot_name, intent.intent_name, intent.utterances, intent.attrs['plaintext'])
 
-    request.update({'slots': slot_json})
+    request.update({'slots': slots_json})
     return request
 
 @pytest.fixture()
@@ -315,7 +318,7 @@ def test_create_intent_plaintext_conclusion(put_intent_response, codehook_uri, m
         lex_stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-def test_create_intent_with_slot(put_intent_response, codehook_uri, mock_context,
+def test_create_intent_with_custom_slot(put_intent_response, codehook_uri, mock_context,
         lex, aws_lambda, monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
@@ -329,14 +332,39 @@ def test_create_intent_with_slot(put_intent_response, codehook_uri, mock_context
             'conclusion': 'concluded'
         }
         stub_not_found_get_request(lex_stubber)
-        slot = Slot('person', 'AMAZON.Person', 'yo', ['one', 'two'])
-        # intent = Intent('a', 'b', 'c', 'd', [slot], plaintext=plaintext)
+        slot = Slot('person', 'Greetings', 'yo', ['one', 'two'])        
         intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 UTTERANCES, [slot], plaintext=plaintext, max_attempts=3)
 
-        put_request = put_intent_slot_request(intent)
-        # put_request = put_intent_request(BOT_NAME,
-        #                                   INTENT_NAME, UTTERANCES, plaintext=plaintext)
+        put_request = put_intent_slot_request(intent)    
+        put_request.update(put_request_conclusion(plaintext))
+
+        stub_intent_creation(lex_stubber, put_intent_response, put_request)
+
+        intent_builder.put_intent(intent)
+
+        lex_stubber.assert_no_pending_responses()
+        lambda_stubber.assert_no_pending_responses()
+
+def test_create_intent_with_amazon_slot(put_intent_response, codehook_uri, mock_context,
+        lex, aws_lambda, monkeypatch_account):
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
+
+        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+
+        plaintext = {
+            "confirmation": 'some confirmation message',
+            'rejection': 'rejection message',
+            'conclusion': 'concluded'
+        }
+        stub_not_found_get_request(lex_stubber)
+        slot = Slot('person', 'AMAZON.Person', 'yo', ['one', 'two'])        
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, [slot], plaintext=plaintext, max_attempts=3)
+
+        put_request = put_intent_slot_request(intent)    
         put_request.update(put_request_conclusion(plaintext))
 
         stub_intent_creation(lex_stubber, put_intent_response, put_request)

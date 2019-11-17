@@ -172,21 +172,25 @@ class IntentBuilder(LexHelper, object):
     def _put_intent_slot_request(self, intent):
         slots_json = []
         for slot in intent.slots:
-            slots_json.append({
+            slot_json = {
                 'name': slot.name,
                 'sampleUtterances': slot.utterances,
                 'slotType': slot.slot_type,
                 'slotTypeVersion': '$LATEST',
                 'slotConstraint': 'Required',
                 'valueElicitationPrompt': {
-                'messages': [{                    
-                    'content': slot.prompt,
-                    'contentType': 'PlainText'                  
-                }],
-                'maxAttempts': 3
+                    'messages': [{                    
+                        'content': slot.prompt,
+                        'contentType': 'PlainText'                  
+                    }],
+                    'maxAttempts': 3
+                }
             }
-            })
             
+            if 'AMAZON' in slot.slot_type:
+                del slot_json['slotTypeVersion']            
+            slots_json.append(slot_json)
+
         return slots_json
 
     def put_intent_request(self, intent):
