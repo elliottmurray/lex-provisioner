@@ -10,8 +10,8 @@ from utils import ValidationError
 from intent_builder import IntentBuilder
 from lex_helper import LexHelper
 from models.intent import Intent
+from models.slot import Slot
 
-SLOTS = 'dfd' #todo make this a slot
 aws_region = 'us-east-1'
 aws_account_id = '1234567789'
 CODEHOOKNAME = 'greetingCodehook'
@@ -60,13 +60,11 @@ def put_request_conclusion(plaintext):
         },
     }
 
-
 def put_intent_request(bot_name, intent_name, utterances, plaintext=None):
 
     return {
         'name': intent_name,
         'description': "Intent {0} for {1}".format(intent_name, bot_name),
-        # 'slots': [],
         'sampleUtterances': utterances,
         'confirmationPrompt': {
             'messages': [
@@ -96,6 +94,29 @@ def put_intent_request(bot_name, intent_name, utterances, plaintext=None):
             'type': 'ReturnIntent'
         }
     }
+
+def put_intent_slot_request(intent):
+    slot_json = []
+    for slot in intent.slots:
+        slot_json.append({
+            'name': slot.name,
+            'sampleUtterances': slot.utterances,
+            'slotType': slot.slot_type,
+            'slotTypeVersion': '$LATEST',
+            'slotConstraint': 'Required',
+            'valueElicitationPrompt': {
+                'messages': [{                    
+                    'content': slot.prompt,
+                    'contentType': 'PlainText'
+                }],
+                'maxAttempts': 3
+            }
+        })
+
+    request = put_intent_request(intent.bot_name, intent.intent_name, intent.utterances, intent.attrs['plaintext'])
+
+    request.update({'slots': slot_json})
+    return request
 
 @pytest.fixture()
 def lex():
@@ -193,24 +214,23 @@ def stub_lambda_request(lambda_stubber, codehook_uri):
     lambda_stubber.add_response('add_permission', {}, lambda_request)
 
 def stub_intent_get(stubber, intent_name):
-   stubber.add_response(
-     'get_intent', {'checksum': 'chksum'}, {'name':intent_name, 'version':
-                                         ANY})
+   stubber.add_response('get_intent', 
+                        {'checksum': 'chksum'}, 
+                        {'name':intent_name, 'version':
+                        ANY})
+
 def stub_not_found_get_request(stubber):
     """stub not found get request"""
     stubber.add_client_error('get_intent', service_error_code='NotFoundException')
 
-def stub_intent_creation(stubber, put_intent_response, put_request):
-    stubber.add_response(
-        'put_intent', put_intent_response, put_request)
+def stub_intent_creation(stubber, response, request):
+    stubber.add_response('put_intent', response, request)
     stubber.add_response('create_intent_version', {'name': INTENT_NAME,
                                                    'version': '1'},
                          {'checksum': 'chksum', 'name': 'greeting'})
 
-def stub_intent_deletion(stubber, delete_intent_response, delete_request):
-
-    stubber.add_response(
-        'delete_intent', delete_intent_response, delete_request)
+def stub_intent_deletion(stubber, response, request):
+    stubber.add_response('delete_intent', response, request)
 
 @pytest.fixture()
 def mock_context(mocker):
@@ -236,7 +256,7 @@ def test_create_intent_missing_rejection_plaintext(put_intent_response,
     }
 
     intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                   UTTERANCES, SLOTS, plaintext=plaintext)
+                   UTTERANCES, [], plaintext=plaintext)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
@@ -261,7 +281,7 @@ def test_create_intent_old_missing_rejection_plaintext(put_intent_response,
             "confirmation": 'some confirmation message'
         }
         intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                   UTTERANCES, SLOTS, plaintext=plaintext)
+                   UTTERANCES, [], plaintext=plaintext)
         with pytest.raises(Exception) as excinfo:
             intent_builder.put_intent(intent)
         
@@ -281,14 +301,46 @@ def test_create_intent_plaintext_conclusion(put_intent_response, codehook_uri, m
             'conclusion': 'concluded'
         }
         stub_not_found_get_request(lex_stubber)
-
         put_request = put_intent_request(BOT_NAME,
-                                          INTENT_NAME, UTTERANCES, plaintext=plaintext)
+                                         INTENT_NAME, 
+                                         UTTERANCES, 
+                                         plaintext=plaintext)
         put_request.update(put_request_conclusion(plaintext))
 
         stub_intent_creation(lex_stubber, put_intent_response, put_request)
         intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
                 UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        intent_builder.put_intent(intent)
+
+        lex_stubber.assert_no_pending_responses()
+        lambda_stubber.assert_no_pending_responses()
+
+def test_create_intent_with_slot(put_intent_response, codehook_uri, mock_context,
+        lex, aws_lambda, monkeypatch_account):
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
+        stub_lambda_request(lambda_stubber, codehook_uri)
+
+        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+
+        plaintext = {
+            "confirmation": 'some confirmation message',
+            'rejection': 'rejection message',
+            'conclusion': 'concluded'
+        }
+        stub_not_found_get_request(lex_stubber)
+        slot = Slot('person', 'AMAZON.Person', 'yo', ['one', 'two'])
+        # intent = Intent('a', 'b', 'c', 'd', [slot], plaintext=plaintext)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
+                UTTERANCES, [slot], plaintext=plaintext, max_attempts=3)
+
+        put_request = put_intent_slot_request(intent)
+        # put_request = put_intent_request(BOT_NAME,
+        #                                   INTENT_NAME, UTTERANCES, plaintext=plaintext)
+        put_request.update(put_request_conclusion(plaintext))
+
+        stub_intent_creation(lex_stubber, put_intent_response, put_request)
+
         intent_builder.put_intent(intent)
 
         lex_stubber.assert_no_pending_responses()

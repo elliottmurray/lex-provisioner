@@ -2,6 +2,7 @@ class Slot(object):
 
     def __init__(self, name, slot_type, prompt, utterances):
         self.name = name
+        slot_type == [] if slot_type == None else slot_type
         self.slot_type = slot_type
         self.prompt = prompt
         self.utterances = utterances

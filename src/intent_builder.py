@@ -169,16 +169,30 @@ class IntentBuilder(LexHelper, object):
                 'responseCard': 'string'
             },
         })
+    def _put_intent_slot_request(self, intent):
+        slots_json = []
+        for slot in intent.slots:
+            slots_json.append({
+                'name': slot.name,
+                'sampleUtterances': slot.utterances,
+                'slotType': slot.slot_type,
+                'slotTypeVersion': '$LATEST',
+                'slotConstraint': 'Required',
+                'valueElicitationPrompt': {
+                'messages': [{                    
+                    'content': slot.prompt,
+                    'contentType': 'PlainText'                  
+                }],
+                'maxAttempts': 3
+            }
+            })
+            
+        return slots_json
 
     def put_intent_request(self, intent):
-# for when fulfillment activity needs a codehook this will be needed
-        #utterances = [ 'a test utterance', 'another one']
-# bot_name, intent_name, codehook_uri,
-#             utterances, max_attempts=3, plaintext=None
         request = {
             'name': intent.intent_name,
             'description': "Intent {0} for {1}".format(intent.intent_name, intent.bot_name),
-            # 'slots': [],
             'sampleUtterances': intent.utterances,
             'dialogCodeHook': {
                 'uri': intent.codehook_arn,
@@ -188,6 +202,9 @@ class IntentBuilder(LexHelper, object):
                 'type': 'ReturnIntent'
            }
         }
+
+        slots_json = self._put_intent_slot_request(intent)
+        if (len(slots_json) > 0): request.update({"slots": slots_json})
 
         plaintext= intent.attrs['plaintext']
         max_attempts = intent.attrs.get('max_attempts')

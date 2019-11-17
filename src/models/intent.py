@@ -7,7 +7,7 @@ class Intent(object):
         self.intent_name = intent_name
         self.codehook_arn = codehook_arn
         self.utterances = utterances
-        self.slots = slots
+        self.slots = [] if slots == None else slots
         self.attrs = kwargs
 #        self._validate_intent()
 
