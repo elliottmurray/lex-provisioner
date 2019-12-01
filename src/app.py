@@ -1,28 +1,23 @@
 """ entry point for lambda"""
-import json
-# import requests # pylint: disable=unused-import
-import os
+import json # pylint: disable=unresolved-import
+import os # pylint: disable=unresolved-import
 
 # pylint: disable=import-error
-import crhelper
+import aws_helper
 from bot_builder import LexBotBuilder
+
 from slot_builder import SlotBuilder
+from models.bot import Bot
 from models.intent import Intent
 
 # pylint: enable=import-error
 
 # initialise logger
-logger = crhelper.log_config({"RequestId": "CONTAINER_INIT"}) # pylint: disable=invalid-name
+logger = aws_helper.log_config({"RequestId": "CONTAINER_INIT"}) # pylint: disable=invalid-name
 
 logger.info('Logging configured')
 # set global to track init failures
 INIT_FAILED = False
-
-# if (os.getenv('DEBUG', False)): # is there a better way of doing
-#     import ptvsd
-
-#     ptvsd.enable_attach(address=('0.0.0.0', 5890), redirect_output=True)
-#     ptvsd.wait_for_attach()
 
 def _get_function_arn(function_name, aws_region, aws_account_id, prefix):
     return 'arn:aws:lambda:' + aws_region + ':' + aws_account_id \
@@ -136,12 +131,16 @@ def create(event, context):
         name = _slot_type_name(event, slot_type)
         slot_builder.put_slot_type(_name_prefix(event) + name,
                                    synonyms=slot_types[name])
-    messages = resources.get('messages')
+    # messages = resources.get('messages')
     intents = _extract_intents(bot_name, resources)
     _validate_intents(intents)
 
-    bot_put_response = lex_bot_builder.put(bot_name, intents, messages,
-        locale=resources.get('locale'), description=resources.get('description'))
+    bot = Bot.create_bot(bot_name, intents, resources)
+
+    bot_put_response = lex_bot_builder.put_bot(bot)
+
+    # bot_put_response = lex_bot_builder.put(bot_name, intents, messages,
+    #     locale=resources.get('locale'), description=resources.get('description'))
 
     return dict(
         BotName=bot_put_response['name'],
@@ -185,7 +184,7 @@ def lambda_handler(event, context):
     # update the logger with event info
     global logger # pylint: disable=invalid-name,global-statement
 
-    logger = crhelper.log_config(event)
+    logger = aws_helper.log_config(event)
     logger.info('event: %s', json.dumps(event, indent=4, sort_keys=True, default=str))
-    return crhelper.cfn_handler(event, context, create, update, delete, logger,
+    return aws_helper.cfn_handler(event, context, create, update, delete, logger,
                                 INIT_FAILED)

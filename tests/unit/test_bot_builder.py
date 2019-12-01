@@ -8,7 +8,7 @@ from pytest_mock import mocker
 from unittest.mock import Mock
 
 from bot_builder import LexBotBuilder
-import crhelper
+from models.bot import Bot
 from models.intent import Intent
 
 
@@ -94,6 +94,19 @@ def _get_bot_response():
         ],
         "lastUpdatedDate": 10012019
     }
+
+@pytest.fixture()
+def bot_properties():
+  """ default prop resources """
+
+  return {
+      "description": DESCRIPTION,
+      'messages': {
+          'clarification': 'clarification statement',
+          'abortStatement': 'abort statement'
+      },
+      'locale': 'en-US'
+  }
 
 @pytest.fixture()
 def put_bot_response():
@@ -242,9 +255,8 @@ def mock_context(mocker):
     return context
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_create_puts_bot(intent_builder, put_bot_response, mocker):
+def test_create_puts_bot(intent_builder, put_bot_response, bot_properties, mocker):
     """ test_create_puts_bot"""
-
     lex, intents = setup()
     expected_put_params = put_bot_request(BOT_NAME, intents, MESSAGES)
 
@@ -257,21 +269,23 @@ def test_create_puts_bot(intent_builder, put_bot_response, mocker):
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        response = bot_builder.put(BOT_NAME,
-                                   intents,
-                                   MESSAGES,
-                                   locale='en-US', description='test desc')
+        bot = Bot.create_bot(BOT_NAME,
+                             intents,
+                             bot_properties)
+
+        response = bot_builder.put(bot)
 
         assert response['name'] == BOT_NAME
         assert response['version'] == BOT_VERSION
         stubber.assert_no_pending_responses()
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
+def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, bot_properties, mocker):
     """ test_update_puts_bot"""
     lex, intents = setup()
-
-    expected_put_params = put_bot_request(BOT_NAME, intents, MESSAGES,
+    expected_put_params = put_bot_request(BOT_NAME,
+                                          intents,
+                                          MESSAGES,
                                           has_checksum=True)
 
     with Stubber(lex) as stubber:
@@ -282,10 +296,11 @@ def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                                     intent_builder=intent_builder_instance)
+        bot = Bot.create_bot(BOT_NAME,
+                             intents,
+                             bot_properties)
+        response = bot_builder.put(bot)
 
-        response = bot_builder.put(BOT_NAME, intents,
-                                   MESSAGES,
-                                   locale='en-US', description='test desc')
 
         assert response['name'] == BOT_NAME
         assert response['version'] == BOT_VERSION
@@ -296,10 +311,10 @@ def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, mocker):
 def test_create_put_intent_called(intent_builder,
                                   get_bot_response,
                                   put_bot_response,
+                                  bot_properties,
                                   mocker):
     """ create put intent called test """
     lex, intents = setup()
-
     expected_put_params = put_bot_request(BOT_NAME, intents, MESSAGES)
 
     with Stubber(lex) as stubber:
@@ -310,10 +325,10 @@ def test_create_put_intent_called(intent_builder,
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                                     intent_builder=intent_builder_instance)
-        bot_builder.put(BOT_NAME,
-                        intents,
-                        MESSAGES,
-                        locale='en-US', description='test desc')
+        bot = Bot.create_bot(BOT_NAME,
+                             intents,
+                             bot_properties)
+        bot_builder.put(bot)
 
         assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(intents[1])
@@ -336,7 +351,8 @@ def test_delete_bot_called(intent_builder, put_bot_response, mocker):
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        bot_builder.delete(BOT_NAME, intents)
+        bot = Bot.create_bot(BOT_NAME, intents, {})
+        bot_builder.delete(bot)
         stubber.assert_no_pending_responses()
 
 
@@ -356,8 +372,9 @@ def test_delete_bot_on_deleted_bot(intent_builder, put_bot_response, mocker):
 
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
+        bot = Bot.create_bot(BOT_NAME, intents, {})
 
-        bot_builder.delete(BOT_NAME, intents)
+        bot_builder.delete(bot)
 
         assert intent_builder_instance.delete_intents.call_count == 1
 
@@ -375,11 +392,11 @@ def test_delete_bot_intents_called(intent_builder, put_bot_response, mocker):
         stub_get_request(stubber)
         stubber.add_response('delete_bot', {}, {'name':BOT_NAME})
 
-
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
+        bot = Bot.create_bot(BOT_NAME, intents, {})
 
-        bot_builder.delete(BOT_NAME, intents)
+        bot_builder.delete(bot)
 
         assert intent_builder_instance.delete_intents.call_count == 1
         intent_builder_instance.delete_intents.assert_called_with(['greeting','farewell'])

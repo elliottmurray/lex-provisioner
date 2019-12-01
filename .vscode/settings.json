@@ -2,10 +2,12 @@
   "python.linting.pylintEnabled": true,
   "python.pythonPath": "${workspaceRoot}/.direnv/python-3.7.4/bin/python",
   "python.testing.pytestArgs": [
-    "tests", "--verbose"
+    "tests"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.nosetestsEnabled": false,
   "python.testing.pytestEnabled": true,
-  "python.envFile": "${workspaceRoot}/.env"
+  "python.terminal.activateEnvironment": false,
+  "python.envFile": "${workspaceRoot}/.env",
+  "python.linting.enabled": true
 }
