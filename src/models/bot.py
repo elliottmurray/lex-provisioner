@@ -9,9 +9,9 @@ class Bot(object):
         self.attrs = kwargs
 
     def validate_bot(self):
-        if self.utterances is None:
-            raise Exception("Utterances missing in intents")        
-        
+        if self.messages is None:
+            raise Exception("Messages missing in bot")
+
     def __eq__(self, other):
         """Override the default Equals behavior"""
 
@@ -24,16 +24,16 @@ class Bot(object):
 
     @classmethod
     def create_bot(cls, name, intents, resources, **kwargs):
-        messages = resources.get('messages')        
-        
+        messages = resources.get('messages')
+
         # intent_name, codehook_arn, max_attempts = cls._extract_intent_attributes(intent_definition)
-        # utterances = intent_definition.get('Utterances')        
+        # utterances = intent_definition.get('Utterances')
         # # slots = Slot.create_slots(intent_definition.get('Slots'))
-        
+
         # max_attempts = intent_definition.get('maxAttempts') if intent_definition.get('maxAttempts') else 3
-        return Bot(name, 
-                   intents, 
-                   messages, 
+        return Bot(name,
+                   intents,
+                   messages,
                    locale=resources.get('locale'), description=resources.get('description'))
 
     @classmethod
