@@ -135,9 +135,13 @@ def create(event, context):
     intents = _extract_intents(bot_name, resources)
     _validate_intents(intents)
 
-    bot = Bot.create_bot(bot_name, intents, resources)
+    bot = Bot.create_bot(bot_name, 
+                         intents, 
+                         resources.get('messages'), 
+                         locale=resources.get('locale'),
+                         description=resources.get('description'))
 
-    bot_put_response = lex_bot_builder.put_bot(bot)
+    bot_put_response = lex_bot_builder.put(bot)
 
     # bot_put_response = lex_bot_builder.put(bot_name, intents, messages,
     #     locale=resources.get('locale'), description=resources.get('description'))

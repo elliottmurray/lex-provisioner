@@ -101,10 +101,10 @@ def bot_properties():
 
   return {
       "description": DESCRIPTION,
-      'messages': {
-          'clarification': 'clarification statement',
-          'abortStatement': 'abort statement'
-      },
+    #   'messages': {
+    #       'clarification': 'clarification statement',
+    #       'abortStatement': 'abort statement'
+    #   },
       'locale': 'en-US'
   }
 
@@ -271,7 +271,8 @@ def test_create_puts_bot(intent_builder, put_bot_response, bot_properties, mocke
 
         bot = Bot.create_bot(BOT_NAME,
                              intents,
-                             bot_properties)
+                             MESSAGES,
+                             **bot_properties)
 
         response = bot_builder.put(bot)
 
@@ -298,7 +299,8 @@ def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, bot_prop
                                     intent_builder=intent_builder_instance)
         bot = Bot.create_bot(BOT_NAME,
                              intents,
-                             bot_properties)
+                             MESSAGES,
+                             **bot_properties)
         response = bot_builder.put(bot)
 
 
@@ -309,7 +311,6 @@ def test_update_puts_bot(intent_builder, intent_defs, put_bot_response, bot_prop
 
 @mock.patch('bot_builder.IntentBuilder')
 def test_create_put_intent_called(intent_builder,
-                                  get_bot_response,
                                   put_bot_response,
                                   bot_properties,
                                   mocker):
@@ -327,14 +328,15 @@ def test_create_put_intent_called(intent_builder,
                                     intent_builder=intent_builder_instance)
         bot = Bot.create_bot(BOT_NAME,
                              intents,
-                             bot_properties)
+                             MESSAGES,
+                             **bot_properties)
         bot_builder.put(bot)
 
         assert intent_builder_instance.put_intent.call_count == 2
         intent_builder_instance.put_intent.assert_called_with(intents[1])
 
 @mock.patch('bot_builder.IntentBuilder')
-def test_delete_bot_called(intent_builder, put_bot_response, mocker):
+def test_delete_bot_called(intent_builder, put_bot_response, bot_properties, mocker):
     """ delete bot called test """
 
     lex, intents = setup()
@@ -351,7 +353,10 @@ def test_delete_bot_called(intent_builder, put_bot_response, mocker):
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        bot = Bot.create_bot(BOT_NAME, intents, {})
+        bot = Bot.create_bot(BOT_NAME, 
+                             intents, 
+                             MESSAGES,
+                             **bot_properties)
         bot_builder.delete(bot)
         stubber.assert_no_pending_responses()
 
