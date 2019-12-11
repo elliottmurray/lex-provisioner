@@ -135,9 +135,9 @@ def create(event, context):
     intents = _extract_intents(bot_name, resources)
     _validate_intents(intents)
 
-    bot = Bot.create_bot(bot_name, 
-                         intents, 
-                         resources.get('messages'), 
+    bot = Bot.create_bot(bot_name,
+                         intents,
+                         resources.get('messages'),
                          locale=resources.get('locale'),
                          description=resources.get('description'))
 
@@ -170,9 +170,14 @@ def delete(event, context):
     bot_name =  _bot_name(event)
     resources = event.get('ResourceProperties')
     intents = _extract_intents(bot_name, resources)
+    bot = Bot.create_bot(bot_name,
+                      intents,
+                      resources.get('messages'),
+                      locale=resources.get('locale'),
+                      description=resources.get('description'))
     slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(context)
-    lex_bot_builder.delete(bot_name, intents)
+    lex_bot_builder.delete(bot)
 
     slot_types = event.get('ResourceProperties').get('slotTypes')
     slot_types = [] if slot_types is None else slot_types

@@ -209,9 +209,9 @@ def test_create_put_bot_no_prefix(validate_intent, mock_intent, mock_bot, cfn_cr
     messages = resources['messages']
 
     builder.put.assert_called_once_with('1234')
-    mock_bot.assert_called_once_with('LexBot', 
-                                     [intent, intent], 
-                                     messages, 
+    mock_bot.assert_called_once_with('LexBot',
+                                     [intent, intent],
+                                     messages,
                                      locale=resources.get('locale'),
                                      description=resources.get('description'))
     validate_intent.assert_called_once
@@ -322,38 +322,48 @@ def test_update_deleted_slot(cfn_create_event, setup, monkeypatch):
     context, builder, _ = setup
     response = app.update(cfn_create_event, context)
 
-
+@mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
-def test_delete(mock_intent_cls, cfn_delete_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.validate_intent')
+def test_delete(validate_intent, mock_intent, mock_bot, cfn_delete_event, setup, monkeypatch):
     """ test_delete """
     context, builder, slot_builder = setup
 
     intent = Intent('a', 'b', 'c', 'd', None)
-    mock_intent_cls.return_value = intent
+    mock_intent.return_value = intent
+    mock_bot.return_value = '1234'
 
     patch_builder(context, builder, monkeypatch)
     patch_slot_builder(context, slot_builder, monkeypatch)
 
     app.delete(cfn_delete_event, context)
 
-    builder.delete.assert_called_once_with(BOT_NAME, [intent, intent])
+    builder.delete.assert_called_once_with('1234')
 
     slot_builder.delete_slot_type.assert_called_once_with(PREFIX + SLOT_TYPE_NAME)
 
 
+@mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
-def test_delete_no_prefix(mock_intent_cls, cfn_delete_event, setup, monkeypatch):
+@mock.patch('models.intent.Intent.validate_intent')
+def test_delete_no_prefix(validate_intent, mock_intent, mock_bot, cfn_delete_event, setup, monkeypatch):
+# def test_delete_no_prefix(mock_intent_cls, cfn_delete_event, setup, monkeypatch):
     """ test_delete_no_prefix """
     context, builder, slot_builder = setup
     cfn_delete_event['ResourceProperties'].pop('NamePrefix')
     cfn_delete_event['ResourceProperties']['name'] = 'LexBot'
     intent = Intent('a', 'b', 'c', 'd', 'e')
-    mock_intent_cls.return_value = intent
+
+    mock_intent.return_value = intent
+    mock_bot.return_value = '1234'
+
 
     patch_builder(context, builder, monkeypatch)
     patch_slot_builder(context, slot_builder, monkeypatch)
 
     app.delete(cfn_delete_event, context)
 
-    builder.delete.assert_called_once_with("LexBot", [intent, intent])
+    builder.delete.assert_called_once_with('1234')
+
+    # builder.delete.assert_called_once_with("LexBot", [intent, intent])
     slot_builder.delete_slot_type.assert_called_once_with(SLOT_TYPE_NAME)
