@@ -1,7 +1,6 @@
 from collections import namedtuple
 import json
 import requests
-import crhelper
 
 import mock
 import pytest

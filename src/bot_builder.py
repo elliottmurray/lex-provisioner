@@ -76,46 +76,55 @@ class LexBotBuilder(LexHelper):
 
         return properties
 
-    def put(self, bot_name, intents, messages, **kwargs):
-        """Create/Update lex-bot resources; bot, intents, slot_types
-        Lex needs locale and description in kwargs
-        """
-        intent_defs = self._put_intents(bot_name, intents)
+    def put(self, bot):
+        intent_defs = self._put_intents(bot.name, bot.intents)
         self._logger.info(intent_defs)
 
         checksum = ''
-        bot_properties = self._bot_put_properties(bot_name, checksum, messages, **kwargs)
+        bot_properties = self._bot_put_properties(bot.name, checksum, bot.messages, **bot.attrs)
         bot_properties.update({"intents": intent_defs})
 
-        bot_response = self._put_bot(bot_name, bot_properties)
+        bot_response = self._put_bot(bot.name, bot_properties)
         return bot_response
 
-    def delete(self, bot_name, intents):
-        """Delete bot, intents, and slot-types"""
-        delete_failed = False
+    # def put(self, bot_name, intents, messages, **kwargs):
+    #     """Create/Update lex-bot resources; bot, intents, slot_types
+    #     Lex needs locale and description in kwargs
+    #     """
+    #     intent_defs = self._put_intents(bot_name, intents)
+    #     self._logger.info(intent_defs)
+
+    #     checksum = ''
+    #     bot_properties = self._bot_put_properties(bot_name, checksum, messages, **kwargs)
+    #     bot_properties.update({"intents": intent_defs})
+
+    #     bot_response = self._put_bot(bot_name, bot_properties)
+    #     return bot_response
+
+    def delete(self, bot):
+      delete_failed = False
         # TODO what about deleting published version(s) of the bot?
-        try:
-            self._delete_bot(bot_name)
-        except Exception as ex:
-            traceback.print_exc(ex)
-            delete_failed = True
+      try:
+          self._delete_bot(bot.name)
+      except Exception as ex:
+          traceback.print_exc(ex)
+          delete_failed = True
 
-        try:
-            self._delete_intents(bot_name, intents)
-        except Exception as ex:
-            traceback.print_exc(ex)
-            delete_failed = True
+      try:
+          self._delete_intents(bot.name, bot.intents)
+      except Exception as ex:
+          traceback.print_exc(ex)
+          delete_failed = True
 
-        if delete_failed:
-            raise Exception(
-                'See logs for details on what resources failed to delete')
+      if delete_failed:
+          raise Exception(
+              'See logs for details on what resources failed to delete')
 
-        self._logger.info('Successfully deleted bot and associated resources')
+      self._logger.info('Successfully deleted bot and associated resources')
 
     def _put_intents(self, bot_name, intents):
         intent_versions = []
         for intent in intents:
-            # intent = Intent.create_intent(bot_name, intent_definition)
             intent_versions.append(
                 self._intent_builder.put_intent(intent)
             )
@@ -128,7 +137,6 @@ class LexBotBuilder(LexHelper):
 
         self._logger.info(intent_names)
         self._intent_builder.delete_intents(intent_names)
-
 
     def _bot_exists(self, name, versionOrAlias='$LATEST'):
         try:
@@ -152,27 +160,27 @@ class LexBotBuilder(LexHelper):
             self._logger.error(ex)
             raise ex
 
+    def _create_bot(self, bot_name, bot_properties):
+        bot_exists, checksum = self._bot_exists(bot_name)
+        if bot_exists:
+            creation_response = self._update_lex_resource(
+                self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
+            return creation_response, creation_response['checksum']
+
+        else:
+            self._logger.info(bot_properties)
+            creation_response = self._create_lex_resource(
+                self._lex_sdk.put_bot, 'put_bot', bot_properties)
+
+            return creation_response, creation_response['checksum']
+
     def _put_bot(self, bot_name, bot_properties):
         """Create/Update bot"""
 
         self._logger.info('Put bot properites %s', bot_name)
         self._logger.info(bot_properties)
 
-        bot_exists, checksum = self._bot_exists(bot_name)
-        version_response = None
-
-        if bot_exists:
-            creation_response = self._update_lex_resource(
-                self._lex_sdk.put_bot, 'put_bot', checksum, bot_properties)
-            checksum = creation_response['checksum']
-
-        else:
-            self._logger.info(bot_properties)
-
-            creation_response = self._create_lex_resource(
-                self._lex_sdk.put_bot, 'put_bot', bot_properties)
-
-            checksum = creation_response['checksum']
+        response, checksum = self._create_bot(bot_name, bot_properties)
 
         version_response = self._create_lex_resource(
             self._lex_sdk.create_bot_version, 'create_bot_version',
