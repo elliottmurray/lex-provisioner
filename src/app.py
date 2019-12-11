@@ -131,7 +131,7 @@ def create(event, context):
         name = _slot_type_name(event, slot_type)
         slot_builder.put_slot_type(_name_prefix(event) + name,
                                    synonyms=slot_types[name])
-    # messages = resources.get('messages')
+
     intents = _extract_intents(bot_name, resources)
     _validate_intents(intents)
 
@@ -142,9 +142,6 @@ def create(event, context):
                          description=resources.get('description'))
 
     bot_put_response = lex_bot_builder.put(bot)
-
-    # bot_put_response = lex_bot_builder.put(bot_name, intents, messages,
-    #     locale=resources.get('locale'), description=resources.get('description'))
 
     return dict(
         BotName=bot_put_response['name'],

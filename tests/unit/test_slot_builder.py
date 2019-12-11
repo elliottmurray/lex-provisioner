@@ -149,7 +149,7 @@ def test_delete_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stub_slot_type_deletion(stubber, {}, delete_request)
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is True
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
         stubber.assert_no_pending_responses()
 
 def test_delete_not_found_slot_type(lex, mocker):
@@ -159,7 +159,17 @@ def test_delete_not_found_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stubber.add_client_error('delete_slot_type', service_error_code='NotFoundException')
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is True
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
+        stubber.assert_no_pending_responses()
+
+def test_delete_unknown_error_slot_type(lex, mocker):
+    context = mock_context(mocker)
+    slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
+
+    with Stubber(lex) as stubber:
+        stubber.add_client_error('delete_slot_type', service_error_code='UnknownException')
+
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
         stubber.assert_no_pending_responses()
 
 def test_delete_in_use_slot_type(lex, mocker):
@@ -169,5 +179,5 @@ def test_delete_in_use_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stubber.add_client_error('delete_slot_type', service_error_code='ResourceInUseException')
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is False
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
         stubber.assert_no_pending_responses()

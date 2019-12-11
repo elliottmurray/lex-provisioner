@@ -16,6 +16,23 @@ class LexHelper(object):
     def _get_lambda_sdk(self):
         return boto3.Session().client('lambda')
 
+    def _get_resource(self, func, func_name, properties):
+        try:
+          get_response = func(**properties)
+
+          self._logger.info(get_response)
+          checksum = get_response['checksum']
+
+          return True, checksum
+
+        except ClientError as ex:
+          if ex.response['Error']['Code'] == 'NotFoundException':
+              self._logger.info('%s %s not found', func_name, properties['name'])
+              return False, None
+
+          self._logger.error('Lex %s call for %s failed', func_name, properties['name'])
+          raise ex
+
     def _create_lex_resource(self, func, func_name, properties):
         try:
             response = func(**properties)

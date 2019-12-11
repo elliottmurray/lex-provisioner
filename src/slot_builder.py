@@ -20,7 +20,6 @@ class SlotBuilder(LexHelper):
     # pylint: disable=no-self-use
     def get_slots(self, slot_definitions):
         """ get slots """
-        print(slot_definitions)
         return {}
 
     def put_slot_type(self, name, synonyms):
@@ -47,39 +46,26 @@ class SlotBuilder(LexHelper):
         self._logger.info("Successfully created slot type %s", name)
         return response
 
-
     def delete_slot_type(self, name):
         """ delete slot type by name and synonyms """
 
         self._logger.info('Delete slot type %s', name)
         try:
             self._lex_sdk.delete_slot_type(name=name)
-            return True
+
         except ClientError as ex:
-            if self._not_found(ex, 'delete_slot_type'):
-                return True
-            if self._in_use(ex):
-                return False
+            if not self._not_found(ex, 'delete_slot_type'):                
+                self._in_use(ex)
 
     def _in_use(self, ex):
         func_name = 'delete_slot_type'
         if ex.response['Error']['Code'] == 'ResourceInUseException':
             self._logger.info('Lex %s call failed because resource' + \
                     ' in use', func_name)
-            return True
-        return False
+            return False
+        return True
 
-    def _slot_type_exists(self, name):
-        try:
-            get_response = self._lex_sdk.get_slot_type(name=name, version='$LATEST')
-            self._logger.info(get_response)
-            checksum = get_response['checksum']
-
-            return True, checksum
-
-        except ClientError as ex:
-            if self._not_found(ex, 'get_slot_type'):
-                return False, None
-
-            self._logger.error('Lex get_slot_tpe call failed')
-            raise
+    def _slot_type_exists(self, name, versionOrAlias='$LATEST'):
+        return self._get_resource(self._lex_sdk.get_slot_type, 
+                                  'get_slot_type', 
+                                  {'name':name, 'version':versionOrAlias})        

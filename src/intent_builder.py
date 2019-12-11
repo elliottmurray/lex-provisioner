@@ -63,21 +63,9 @@ class IntentBuilder(LexHelper, object):
                         name=intent)
 
     def _intent_exists(self, name, versionOrAlias='$LATEST'):
-      try:
-          get_response = self._lex_sdk.get_intent(name=name,
-                                                   version=versionOrAlias)
-          self._logger.info(get_response)
-          checksum = get_response['checksum']
-
-          return True, checksum
-
-      except ClientError as ex:
-          if ex.response['Error']['Code'] == 'NotFoundException':
-              self._logger.info('Intent %s not found', name)
-              return False, None
-
-          self._logger.error('Lex get_intent call failed')
-          raise
+        return self._get_resource(self._lex_sdk.get_intent, 
+                                  'get_intent', 
+                                  {'name':name, 'version':versionOrAlias})
 
     def _create_message(self, messageKey, content, max_attempts=None):
         message = {
