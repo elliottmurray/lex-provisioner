@@ -40,11 +40,9 @@ def put_slot_type_request(slot_name, synonyms=None):
                 "value": "pyslot"
             }
         ]
-
     put_request.update({"enumerationValues": synonyms})
 
     return put_request
-
 
 @pytest.fixture()
 def put_slot_type_response():
@@ -72,8 +70,9 @@ def stub_slot_type_get(stubber, slot_type_name):
 
 def stub_slot_type_not_found_get(stubber):
     """stub not found get request"""
-    stubber.add_client_error('get_slot_type', service_error_code='NotFoundException')
-
+    stubber.add_client_error('get_slot_type',
+                             http_status_code=404,
+                             service_error_code='NotFoundException')
 def stub_slot_type_creation(stubber, put_slot_type_response, put_slot_type_request):
     """stub_slot_type_creation"""
     stubber.add_response(
@@ -85,6 +84,7 @@ def stub_slot_type_deletion(stubber, delete_slot_response, delete_request):
         'delete_slot_type', delete_slot_response, delete_request)
 
 def mock_context(mocker):
+    """mock context"""
     context = mocker.Mock()
     context.invoked_function_arn = 'arn:aws:lambda:us-east-1:1234567789:function:helloworld'
     return context
@@ -111,9 +111,9 @@ def test_create_slot_type(put_slot_type_response, mocker, lex):
 
         response = slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
 
-        stubber.assert_no_pending_responses()
         assert response['name'] == 'greeting slot'
         assert response['version'] == '$LATEST'
+        stubber.assert_no_pending_responses()
 
 def test_update_slot_type(put_slot_type_response, mocker, lex):
     context = mock_context(mocker)
@@ -149,7 +149,7 @@ def test_delete_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stub_slot_type_deletion(stubber, {}, delete_request)
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is True
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
         stubber.assert_no_pending_responses()
 
 def test_delete_not_found_slot_type(lex, mocker):
@@ -159,7 +159,17 @@ def test_delete_not_found_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stubber.add_client_error('delete_slot_type', service_error_code='NotFoundException')
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is True
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
+        stubber.assert_no_pending_responses()
+
+def test_delete_unknown_error_slot_type(lex, mocker):
+    context = mock_context(mocker)
+    slot_builder = SlotBuilder(Mock(), context, lex_sdk=lex)
+
+    with Stubber(lex) as stubber:
+        stubber.add_client_error('delete_slot_type', service_error_code='UnknownException')
+
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
         stubber.assert_no_pending_responses()
 
 def test_delete_in_use_slot_type(lex, mocker):
@@ -169,5 +179,5 @@ def test_delete_in_use_slot_type(lex, mocker):
     with Stubber(lex) as stubber:
         stubber.add_client_error('delete_slot_type', service_error_code='ResourceInUseException')
 
-        assert slot_builder.delete_slot_type(SLOT_TYPE_NAME) is False
+        slot_builder.delete_slot_type(SLOT_TYPE_NAME)
         stubber.assert_no_pending_responses()

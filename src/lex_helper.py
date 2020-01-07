@@ -16,6 +16,28 @@ class LexHelper(object):
     def _get_lambda_sdk(self):
         return boto3.Session().client('lambda')
 
+    def _get_resource(self, func, func_name, properties):
+        try:
+          get_response = func(**properties)
+
+          self._logger.info(get_response)
+          checksum = get_response['checksum']
+
+          return True, checksum
+
+        except ClientError as ex:
+          http_status_code = None
+          if 'ResponseMetadata' in ex.response:
+              response_metadata = ex.response['ResponseMetadata']
+              if 'HTTPStatusCode' in response_metadata:
+                  http_status_code = response_metadata['HTTPStatusCode']
+          if http_status_code == 404:
+              self._logger.info('%s %s not found', func_name, properties['name'])
+              return False, None
+
+          self._logger.error('Lex %s call for %s failed', func_name, properties['name'])
+          raise ex
+
     def _create_lex_resource(self, func, func_name, properties):
         try:
             response = func(**properties)
@@ -31,7 +53,7 @@ class LexHelper(object):
     def _update_lex_resource(self, func, func_name, checksum, properties):
         try:
             response = func(checksum=checksum, **properties)
-            self._logger.info( 
+            self._logger.info(
                 'Updated lex resource using %s, response: %s', func_name, response)
             return response
         except Exception as ex:
@@ -42,7 +64,7 @@ class LexHelper(object):
 
     def _delete_lex_resource(self, func, func_name, **properties):
         '''Delete lex resource'''
-        self._logger.info('%s : %s', func_name, properties) 
+        self._logger.info('%s : %s', func_name, properties)
         count = self.MAX_DELETE_TRIES
         while True:
             try:

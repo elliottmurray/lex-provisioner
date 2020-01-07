@@ -221,7 +221,9 @@ def setup():
 
 def stub_not_found_get_request(stubber):
     """stub not found get request"""
-    stubber.add_client_error('get_bot', http_status_code=404)
+    stubber.add_client_error('get_bot',
+                             http_status_code=404,
+                             service_error_code='NotFoundException')
 
 def stub_get_request(stubber):
     """stub get request"""
@@ -353,8 +355,8 @@ def test_delete_bot_called(intent_builder, put_bot_response, bot_properties, moc
         bot_builder = LexBotBuilder(Mock(), context, lex_sdk=lex,
                 intent_builder=intent_builder_instance)
 
-        bot = Bot.create_bot(BOT_NAME, 
-                             intents, 
+        bot = Bot.create_bot(BOT_NAME,
+                             intents,
                              MESSAGES,
                              **bot_properties)
         bot_builder.delete(bot)

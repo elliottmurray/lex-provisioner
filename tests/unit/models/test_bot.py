@@ -27,10 +27,10 @@ def test_create_bot(bot_properties):
     name = 'test name'
     intents = 'testi intents'
     messages = 'test messages'
-    bots = Bot.create_bot(name, intents, messages, **bot_properties)
+    bot = Bot.create_bot(name, intents, messages, **bot_properties)
 
-    assert bots.name == name
-    assert bots.intents == intents
-    assert bots.messages == messages
-    assert bots.attrs == bot_properties
+    assert bot.name == name
+    assert bot.intents == intents
+    assert bot.messages == messages
+    assert bot.attrs == bot_properties
 
