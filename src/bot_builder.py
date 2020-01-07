@@ -38,14 +38,6 @@ class LexBotBuilder(LexHelper):
             intent['intentVersion'] = intents[intent['intentName']]
         return bot_definition
 
-    def _replace_slot_type_version(self, intents_definition, slot_types):
-        # todo construct custom slot types and versions for intents
-        # for intent in intents_definition:
-        #     for slot in intent['slots']:
-        #         if not slot['slotType'].startswith('AMAZON.'):
-        #             slot['slotTypeVersion'] = slot_types[slot['slotType']]
-        return intents_definition
-
     def _bot_put_properties(self, bot_name, checksum, messages, **kwargs):
 
         properties = {
@@ -87,20 +79,6 @@ class LexBotBuilder(LexHelper):
         bot_response = self._put_bot(bot.name, bot_properties)
         return bot_response
 
-    # def put(self, bot_name, intents, messages, **kwargs):
-    #     """Create/Update lex-bot resources; bot, intents, slot_types
-    #     Lex needs locale and description in kwargs
-    #     """
-    #     intent_defs = self._put_intents(bot_name, intents)
-    #     self._logger.info(intent_defs)
-
-    #     checksum = ''
-    #     bot_properties = self._bot_put_properties(bot_name, checksum, messages, **kwargs)
-    #     bot_properties.update({"intents": intent_defs})
-
-    #     bot_response = self._put_bot(bot_name, bot_properties)
-    #     return bot_response
-
     def delete(self, bot):
       delete_failed = False
         # TODO what about deleting published version(s) of the bot?
@@ -139,26 +117,9 @@ class LexBotBuilder(LexHelper):
         self._intent_builder.delete_intents(intent_names)
 
     def _bot_exists(self, name, versionOrAlias='$LATEST'):
-        try:
-            get_bot_response = self._lex_sdk.get_bot(name=name,
-                                                     versionOrAlias=versionOrAlias)
-            self._logger.info(get_bot_response)
-            checksum = get_bot_response['checksum']
-
-            return True, checksum
-
-        except ClientError as ex:
-            http_status_code = None
-            if 'ResponseMetadata' in ex.response:
-                response_metadata = ex.response['ResponseMetadata']
-                if 'HTTPStatusCode' in response_metadata:
-                    http_status_code = response_metadata['HTTPStatusCode']
-            if http_status_code == 404:
-                return False, None
-
-            self._logger.error('Lex get_bot call failed')
-            self._logger.error(ex)
-            raise ex
+        return self._get_resource(self._lex_sdk.get_bot,
+                                  'get_bot',
+                                  {'name':name, 'versionOrAlias':versionOrAlias})
 
     def _create_bot(self, bot_name, bot_properties):
         bot_exists, checksum = self._bot_exists(bot_name)
@@ -277,5 +238,3 @@ class LexBotBuilder(LexHelper):
                         self._logger.error(
                             'Lex delete_slot_type call max retries')
                         raise
-
-
