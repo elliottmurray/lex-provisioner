@@ -22,6 +22,12 @@ class SlotBuilder(LexHelper):
         """ get slots """
         return {}
 
+    def put_slot_type2(self, slot_type):
+        """ put slot type by name and synonyms """
+        name = slot_type.name
+        synonyms = slot_type.slots
+        self.put_slot_type(name, synonyms)
+
     def put_slot_type(self, name, synonyms):
         """ put slot type by name and synonyms """
 
@@ -54,7 +60,7 @@ class SlotBuilder(LexHelper):
             self._lex_sdk.delete_slot_type(name=name)
 
         except ClientError as ex:
-            if not self._not_found(ex, 'delete_slot_type'):                
+            if not self._not_found(ex, 'delete_slot_type'):
                 self._in_use(ex)
 
     def _in_use(self, ex):
@@ -66,6 +72,6 @@ class SlotBuilder(LexHelper):
         return True
 
     def _slot_type_exists(self, name, versionOrAlias='$LATEST'):
-        return self._get_resource(self._lex_sdk.get_slot_type, 
-                                  'get_slot_type', 
-                                  {'name':name, 'version':versionOrAlias})        
+        return self._get_resource(self._lex_sdk.get_slot_type,
+                                  'get_slot_type',
+                                  {'name':name, 'version':versionOrAlias})
