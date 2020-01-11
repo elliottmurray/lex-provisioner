@@ -9,6 +9,7 @@ from botocore.stub import Stubber, ANY
 # pylint: disable=import-error
 from slot_builder import SlotBuilder
 from lex_helper import LexHelper
+from models.slot_type import SlotType
 # pylint: enable=import-error
 
 AWS_REGION = 'us-east-1'
@@ -109,7 +110,8 @@ def test_create_slot_type(put_slot_type_response, mocker, lex):
                                 put_slot_type_request(SLOT_TYPE_NAME, synonyms=stub_values))
         synonyms = {'thin': ['skinny']}
 
-        response = slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
+        slot_type = SlotType.create_slot_types({SLOT_TYPE_NAME: synonyms})
+        response = slot_builder.put_slot_type(slot_type[0])
 
         assert response['name'] == 'greeting slot'
         assert response['version'] == '$LATEST'
@@ -130,11 +132,10 @@ def test_update_slot_type(put_slot_type_response, mocker, lex):
 
         stub_slot_type_get(stubber, SLOT_TYPE_NAME)
         stub_slot_type_creation(stubber, put_slot_type_response, put_request)
-
-
         synonyms = {'thin': ['skinny']}
 
-        response = slot_builder.put_slot_type(SLOT_TYPE_NAME, synonyms=synonyms)
+        slot_type = SlotType.create_slot_types({SLOT_TYPE_NAME: synonyms})
+        response = slot_builder.put_slot_type(slot_type[0])
 
         stubber.assert_no_pending_responses()
         assert response['name'] == 'greeting slot'
