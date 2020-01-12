@@ -10,6 +10,7 @@ from pytest_mock import mocker # pylint: disable=unused-import
 import app # pylint: disable=import-error
 import aws_helper # pylint: disable=import-error,unused-import
 from models.intent import Intent
+from models.slot_type import SlotType
 
 # pylint: disable=redefined-outer-name
 PREFIX = 'pythontest'
@@ -22,6 +23,9 @@ SYNONYMS = {
       "thick": ["thick", "fat"],
       'thin': ['thin', 'light']
     }
+SLOT_TYPES = {
+    "pizzasize": SYNONYMS
+}
 
 @pytest.fixture()
 def cfn_create_event():
@@ -225,13 +229,14 @@ def test_create_put_slottypes_no_prefix(cfn_create_no_prefix_event, setup, monke
     context, builder, slot_builder = setup
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
 
+    slot_types = SlotType.create_slot_types(SLOT_TYPES, prefix='')
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
     patch_builder(context, builder, monkeypatch)
     patch_slot_builder(context, slot_builder, monkeypatch)
 
     response = app.create(cfn_create_no_prefix_event, context)
-    slot_builder.put_slot_type.assert_called_once_with('pizzasize', synonyms=SYNONYMS)
+    slot_builder.put_slot_type.assert_called_once_with(slot_types[0])
 
     assert response['BotName'] == 'LexBot'
 
@@ -252,7 +257,6 @@ def test_create_puts(mock_intent, mock_bot, cfn_create_event, setup, monkeypatch
 
     response = app.create(cfn_create_event, context)
 
-    messages = cfn_create_event['ResourceProperties']['messages']
     builder.put.assert_called_once_with('1234')
 
     assert response['BotName'] == BOT_NAME
@@ -263,6 +267,8 @@ def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
     context, builder, slot_builder = setup
 
     builder.put.return_value = {"name": BOT_NAME, "version": '$LATEST'}
+    slot_types = SlotType.create_slot_types(SLOT_TYPES, prefix=PREFIX)
+
     slot_builder.put_slot_type.return_value = {"pizzasize": 'LexBot', "version": '$LATEST'}
 
     patch_builder(context, builder, monkeypatch)
@@ -270,7 +276,7 @@ def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
 
     response = app.create(cfn_create_event, context)
 
-    slot_builder.put_slot_type.assert_called_once_with('pythontestpizzasize', synonyms=SYNONYMS)
+    slot_builder.put_slot_type.assert_called_once_with(slot_types[0])
     assert response['BotName'] == BOT_NAME
 
 @mock.patch('models.bot.Bot.create_bot')
@@ -288,7 +294,6 @@ def test_update_puts_no_prefix(mock_intent, mock_bot, cfn_create_no_prefix_event
 
     response = app.update(cfn_create_no_prefix_event, context)
 
-    messages = cfn_create_no_prefix_event['ResourceProperties']['messages']
     builder.put.assert_called_once_with('1234')
 
     assert response['BotName'] == 'LexBot'
@@ -311,7 +316,6 @@ def test_update_puts(mock_intent, mock_bot, cfn_create_event, setup, monkeypatch
 
     response = app.update(cfn_create_event, context)
 
-    messages = cfn_create_event['ResourceProperties']['messages']
     builder.put.assert_called_once_with('1234')
 
     assert response['BotName'] == BOT_NAME
@@ -319,8 +323,8 @@ def test_update_puts(mock_intent, mock_bot, cfn_create_event, setup, monkeypatch
 
 @pytest.mark.skip(reason="need to work out in CFN what is currently deployed and new")
 def test_update_deleted_slot(cfn_create_event, setup, monkeypatch):
-    context, builder, _ = setup
-    response = app.update(cfn_create_event, context)
+    context, _, _ = setup
+    app.update(cfn_create_event, context)
 
 @mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
@@ -356,14 +360,10 @@ def test_delete_no_prefix(validate_intent, mock_intent, mock_bot, cfn_delete_eve
 
     mock_intent.return_value = intent
     mock_bot.return_value = '1234'
-
-
     patch_builder(context, builder, monkeypatch)
     patch_slot_builder(context, slot_builder, monkeypatch)
 
     app.delete(cfn_delete_event, context)
 
     builder.delete.assert_called_once_with('1234')
-
-    # builder.delete.assert_called_once_with("LexBot", [intent, intent])
     slot_builder.delete_slot_type.assert_called_once_with(SLOT_TYPE_NAME)

@@ -22,28 +22,28 @@ class SlotBuilder(LexHelper):
         """ get slots """
         return {}
 
-    def put_slot_type(self, name, synonyms):
+    def put_slot_type(self, slot_type):
         """ put slot type by name and synonyms """
-
-        self._logger.info('Put slot type %s', name)
+        self._logger.info('Put slot type %s', slot_type.name)
+        
         enumeration = []
-        for key in synonyms:
-            value = synonyms[key]
+        for key in slot_type.slots:
+            value = slot_type.slots[key]
             enumeration.append({'value': key,
                                 'synonyms': value})
 
-        exists, checksum = self._slot_type_exists(name)
+        exists, checksum = self._slot_type_exists(slot_type.name)
         response = None
         if exists:
-            response = self._lex_sdk.put_slot_type(name=name, description=name,
+            response = self._lex_sdk.put_slot_type(name=slot_type.name, description=slot_type.name,
                                                enumerationValues=enumeration, checksum=checksum,
                                                valueSelectionStrategy='ORIGINAL_VALUE')
         else:
-          response = self._lex_sdk.put_slot_type(name=name, description=name,
+          response = self._lex_sdk.put_slot_type(name=slot_type.name, description=slot_type.name,
                                            enumerationValues=enumeration,
                                            valueSelectionStrategy='ORIGINAL_VALUE')
 
-        self._logger.info("Successfully created slot type %s", name)
+        self._logger.info("Successfully created slot type %s", slot_type.name)
         return response
 
     def delete_slot_type(self, name):
@@ -54,7 +54,7 @@ class SlotBuilder(LexHelper):
             self._lex_sdk.delete_slot_type(name=name)
 
         except ClientError as ex:
-            if not self._not_found(ex, 'delete_slot_type'):                
+            if not self._not_found(ex, 'delete_slot_type'):
                 self._in_use(ex)
 
     def _in_use(self, ex):
@@ -66,6 +66,6 @@ class SlotBuilder(LexHelper):
         return True
 
     def _slot_type_exists(self, name, versionOrAlias='$LATEST'):
-        return self._get_resource(self._lex_sdk.get_slot_type, 
-                                  'get_slot_type', 
-                                  {'name':name, 'version':versionOrAlias})        
+        return self._get_resource(self._lex_sdk.get_slot_type,
+                                  'get_slot_type',
+                                  {'name':name, 'version':versionOrAlias})

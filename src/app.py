@@ -1,6 +1,5 @@
 """ entry point for lambda"""
 import json # pylint: disable=unresolved-import
-import os # pylint: disable=unresolved-import
 
 # pylint: disable=import-error
 import aws_helper
@@ -9,6 +8,7 @@ from bot_builder import LexBotBuilder
 from slot_builder import SlotBuilder
 from models.bot import Bot
 from models.intent import Intent
+from models.slot_type import SlotType
 
 # pylint: enable=import-error
 
@@ -101,13 +101,10 @@ def _name_prefix(event):
 def _bot_name(event):
     return _name_prefix(event) + event['LogicalResourceId']
 
-def _slot_type_name(event, slot_type):
-   return slot_type
-
 def _extract_intents(bot_name, resources):
     intents = []
     for json_intent in resources.get('intents'):
-      intents.append(Intent.create_intent(bot_name, json_intent))
+        intents.append(Intent.create_intent(bot_name, json_intent))
     return intents
 
 def _validate_intents(intents):
@@ -123,14 +120,13 @@ def create(event, context):
     slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(context)
     resources = event.get('ResourceProperties')
-    slot_types = resources.get('slotTypes')
-    slot_types = [] if slot_types is None else slot_types
-    bot_name = _bot_name(event)
 
-    for slot_type in slot_types:
-        name = _slot_type_name(event, slot_type)
-        slot_builder.put_slot_type(_name_prefix(event) + name,
-                                   synonyms=slot_types[name])
+    slot_types = SlotType.create_slot_types(resources.get('slotTypes'), prefix=_name_prefix(event))
+
+    for slot_type in slot_types:    
+        slot_builder.put_slot_type(slot_type)
+
+    bot_name = _bot_name(event)
 
     intents = _extract_intents(bot_name, resources)
     _validate_intents(intents)
@@ -164,14 +160,14 @@ def delete(event, context):
     To return a failure to CloudFormation simply raise an exception,
     the exception message will be sent to CloudFormation Events.
     """
-    bot_name =  _bot_name(event)
+    bot_name = _bot_name(event)
     resources = event.get('ResourceProperties')
     intents = _extract_intents(bot_name, resources)
     bot = Bot.create_bot(bot_name,
-                      intents,
-                      resources.get('messages'),
-                      locale=resources.get('locale'),
-                      description=resources.get('description'))
+                         intents,
+                         resources.get('messages'),
+                         locale=resources.get('locale'),
+                         description=resources.get('description'))
     slot_builder = slot_builder_instance(context)
     lex_bot_builder = lex_builder_instance(context)
     lex_bot_builder.delete(bot)
@@ -180,7 +176,7 @@ def delete(event, context):
     slot_types = [] if slot_types is None else slot_types
 
     for slot_type in slot_types:
-        name = _name_prefix(event) + _slot_type_name(event, slot_type)
+        name = _name_prefix(event) + slot_type
         slot_builder.delete_slot_type(name)
 
 def lambda_handler(event, context):
@@ -193,4 +189,4 @@ def lambda_handler(event, context):
     logger = aws_helper.log_config(event)
     logger.info('event: %s', json.dumps(event, indent=4, sort_keys=True, default=str))
     return aws_helper.cfn_handler(event, context, create, update, delete, logger,
-                                INIT_FAILED)
+                                  INIT_FAILED)
