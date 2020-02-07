@@ -1,9 +1,5 @@
-# import mock
 import pytest
-# from pytest_mock import mocker  # pylint: disable=unused-import
-# from unittest.mock import Mock  # pylint: disable=unused-import
 
-# from models.intent import Intent
 from models.slot import Slot
 
 
@@ -46,3 +42,12 @@ def test_validate_slot_fails(invalid_slots_defs):
         slots[0].validate_slot()
 
     assert "Utterances missing in slot" in str(excinfo.value)
+
+
+def test_validate_utterance_contains_slotname():
+    utterance = 'does not contain slot'
+    with pytest.raises(Exception) as excinfo:
+        Slot('pizza', 'type', 'aprompt',
+             [utterance]).validate_slot()
+
+    assert "does not contain pizza" in str(excinfo.value)
