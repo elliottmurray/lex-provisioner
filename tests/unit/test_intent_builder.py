@@ -20,10 +20,11 @@ BOT_NAME = 'test bot'
 INTENT_NAME = 'greeting'
 INTENT_NAME_2 = 'farewell'
 
-UTTERANCES = [ 'a test utterance', 'and another' ]
+UTTERANCES = ['a test utterance', 'and another']
+
 
 def put_request_followUp(plaintext):
-    return  {
+    return {
         'followUpPrompt': {
             'prompt': {
                 'messages': [
@@ -47,6 +48,7 @@ def put_request_followUp(plaintext):
         }
     }
 
+
 def put_request_conclusion(plaintext):
     return {
         'conclusionStatement': {
@@ -59,6 +61,7 @@ def put_request_conclusion(plaintext):
             'responseCard': 'string'
         },
     }
+
 
 def put_intent_request(bot_name, intent_name, utterances, plaintext=None):
 
@@ -85,15 +88,17 @@ def put_intent_request(bot_name, intent_name, utterances, plaintext=None):
             ],
             'responseCard': 'string'
         },
-       'dialogCodeHook': {
-                'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(aws_region,
-                    aws_account_id, intent_name),
+        'dialogCodeHook': {
+            'uri': "arn:aws:lambda:{0}:{1}:function:{2}Codehook".format(
+                aws_region,
+                aws_account_id, intent_name),
             'messageVersion': '1.0'
         },
         'fulfillmentActivity': {
             'type': 'ReturnIntent'
         }
     }
+
 
 def put_intent_slot_request(intent):
     slots_json = []
@@ -116,18 +121,24 @@ def put_intent_slot_request(intent):
             del slot_json['slotTypeVersion']
         slots_json.append(slot_json)
 
-    request = put_intent_request(intent.bot_name, intent.intent_name, intent.utterances, intent.attrs['plaintext'])
+    request = put_intent_request(intent.bot_name,
+                                 intent.intent_name,
+                                 intent.utterances,
+                                 intent.attrs['plaintext'])
 
     request.update({'slots': slots_json})
     return request
+
 
 @pytest.fixture()
 def lex():
     return botocore.session.get_session().create_client('lex-models')
 
+
 @pytest.fixture()
 def aws_lambda():
     return botocore.session.get_session().create_client('lambda')
+
 
 @pytest.fixture()
 def put_intent_response():
@@ -197,7 +208,8 @@ def put_intent_response():
         'fulfillmentActivity': {
             'type': 'ReturnIntent',
             'codeHook': {
-                'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id + ':function:greetingCodehook',
+                'uri': 'arn:aws:lambda:' + aws_region + ':' + aws_account_id +
+                ':function:greetingCodehook',
                 'messageVersion': 'string'
             }
         },
@@ -205,6 +217,7 @@ def put_intent_response():
         'version': '1',
         'checksum': 'chksum'
     }
+
 
 def stub_lambda_request(lambda_stubber, codehook_uri):
     lambda_request = {
@@ -216,11 +229,14 @@ def stub_lambda_request(lambda_stubber, codehook_uri):
     }
     lambda_stubber.add_response('add_permission', {}, lambda_request)
 
+
 def stub_intent_get(stubber, intent_name):
-   stubber.add_response('get_intent',
-                        {'checksum': 'chksum'},
-                        {'name':intent_name, 'version':
-                        ANY})
+    stubber.add_response('get_intent',
+                         {'checksum': 'chksum'},
+                         {
+                            'name': intent_name,
+                            'version': ANY})
+
 
 def stub_not_found_get_request(stubber):
     """stub not found get request"""
@@ -228,14 +244,17 @@ def stub_not_found_get_request(stubber):
                              http_status_code=404,
                              service_error_code='NotFoundException')
 
+
 def stub_intent_creation(stubber, response, request):
     stubber.add_response('put_intent', response, request)
     stubber.add_response('create_intent_version', {'name': INTENT_NAME,
                                                    'version': '1'},
                          {'checksum': 'chksum', 'name': 'greeting'})
 
+
 def stub_intent_deletion(stubber, response, request):
     stubber.add_response('delete_intent', response, request)
+
 
 @pytest.fixture()
 def mock_context(mocker):
@@ -243,62 +262,79 @@ def mock_context(mocker):
     context.invoked_function_arn = 'arn:aws:lambda:us-east-1:1234567789:function:helloworld'
     return context
 
+
 @pytest.fixture()
 def codehook_uri():
     return 'arn:aws:lambda:{0}:{1}:function:{2}'.format(aws_region,
             aws_account_id, CODEHOOKNAME)
+
 
 @pytest.fixture()
 def monkeypatch_account(monkeypatch):
     monkeypatch.setattr(LexHelper, '_get_aws_details', lambda x:
             [aws_account_id, aws_region])
 
+
 def test_create_intent_missing_rejection_plaintext(put_intent_response,
-        codehook_uri, mock_context, lex, aws_lambda, monkeypatch_account):
+                                                   codehook_uri,
+                                                   mock_context,
+                                                   lex,
+                                                   aws_lambda,
+                                                   monkeypatch_account):
 
     plaintext = {
         "confirmation": 'some confirmation message'
     }
 
     intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                   UTTERANCES, [], plaintext=plaintext)
+                    UTTERANCES, [], plaintext=plaintext)
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
         stub_not_found_get_request(lex_stubber)
 
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex,
+                                       lambda_sdk=aws_lambda)
 
         with pytest.raises(Exception) as excinfo:
             intent_builder.put_intent(intent)
 
         assert "Must have both rejection and confirmation or neither" in str(excinfo.value)
 
-def test_create_intent_old_missing_rejection_plaintext(put_intent_response,
-        codehook_uri, mock_context, lex, aws_lambda, monkeypatch_account):
 
-   with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
+def test_create_intent_old_missing_rejection_plaintext(put_intent_response,
+                                                       codehook_uri,
+                                                       mock_context,
+                                                       lex,
+                                                       aws_lambda,
+                                                       monkeypatch_account):
+
+    with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
         stub_not_found_get_request(lex_stubber)
 
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context,
+                                       lex_sdk=lex, lambda_sdk=aws_lambda)
         plaintext = {
             "confirmation": 'some confirmation message'
         }
         intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                   UTTERANCES, [], plaintext=plaintext)
+                        UTTERANCES, [], plaintext=plaintext)
         with pytest.raises(Exception) as excinfo:
             intent_builder.put_intent(intent)
 
         assert "Must have both rejection and confirmation or neither" in str(excinfo.value)
 
-def test_create_intent_plaintext_conclusion(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
+
+def test_create_intent_plaintext_conclusion(put_intent_response, codehook_uri,
+                                            mock_context, lex, aws_lambda,
+                                            monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
 
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context,
+                                       lex_sdk=lex, lambda_sdk=aws_lambda)
 
         plaintext = {
             "confirmation": 'some confirmation message',
@@ -320,13 +356,16 @@ def test_create_intent_plaintext_conclusion(put_intent_response, codehook_uri, m
         lex_stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-def test_create_intent_with_custom_slot(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
+
+def test_create_intent_with_custom_slot(put_intent_response, codehook_uri,
+                                        mock_context, lex, aws_lambda,
+                                        monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
 
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context,
+                                       lex_sdk=lex, lambda_sdk=aws_lambda)
 
         plaintext = {
             "confirmation": 'some confirmation message',
@@ -336,7 +375,8 @@ def test_create_intent_with_custom_slot(put_intent_response, codehook_uri, mock_
         stub_not_found_get_request(lex_stubber)
         slot = Slot('person', 'Greetings', 'yo', ['one', 'two'])
         intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, [slot], plaintext=plaintext, max_attempts=3)
+                        UTTERANCES, [slot],
+                        plaintext=plaintext, max_attempts=3)
 
         put_request = put_intent_slot_request(intent)
         put_request.update(put_request_conclusion(plaintext))
@@ -348,13 +388,16 @@ def test_create_intent_with_custom_slot(put_intent_response, codehook_uri, mock_
         lex_stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-def test_create_intent_with_amazon_slot(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
+
+def test_create_intent_with_amazon_slot(put_intent_response,
+                                        codehook_uri, mock_context,
+                                        lex, aws_lambda, monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as lex_stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
 
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context,
+                                       lex_sdk=lex, lambda_sdk=aws_lambda)
 
         plaintext = {
             "confirmation": 'some confirmation message',
@@ -364,7 +407,8 @@ def test_create_intent_with_amazon_slot(put_intent_response, codehook_uri, mock_
         stub_not_found_get_request(lex_stubber)
         slot = Slot('person', 'AMAZON.Person', 'yo', ['one', 'two'])
         intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, [slot], plaintext=plaintext, max_attempts=3)
+                        UTTERANCES, [slot], plaintext=plaintext,
+                        max_attempts=3)
 
         put_request = put_intent_slot_request(intent)
         put_request.update(put_request_conclusion(plaintext))
@@ -376,36 +420,41 @@ def test_create_intent_with_amazon_slot(put_intent_response, codehook_uri, mock_
         lex_stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-def test_create_intent_plaintext_followup(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
+
+def test_create_intent_plaintext_followup(put_intent_response, codehook_uri,
+                                          mock_context, lex,
+                                          aws_lambda, monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
         stub_not_found_get_request(stubber)
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context,
+                                       lex_sdk=lex, lambda_sdk=aws_lambda)
 
         plaintext = {
             "confirmation": 'some confirmation message',
             'rejection': 'rejection message',
-            'followUpPrompt':'follow on',
-            'followUpRejection':'failed follow on'
+            'followUpPrompt': 'follow on',
+            'followUpRejection': 'failed follow on'
         }
 
-        put_request = put_intent_request(BOT_NAME,
-                                          INTENT_NAME, UTTERANCES, plaintext=plaintext)
+        put_request = put_intent_request(BOT_NAME, INTENT_NAME,
+                                         UTTERANCES, plaintext=plaintext)
         put_request.update(put_request_followUp(plaintext))
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
         intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+                        UTTERANCES, None, plaintext=plaintext, max_attempts=3)
         intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-def test_update_intent_plaintext_conclusion(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
+
+def test_update_intent_plaintext_conclusion(put_intent_response, codehook_uri,
+                                            mock_context, lex, aws_lambda,
+                                            monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
@@ -425,8 +474,8 @@ def test_update_intent_plaintext_conclusion(put_intent_response, codehook_uri, m
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri, UTTERANCES,
+                        None, plaintext=plaintext, max_attempts=3)
         response = intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
@@ -435,23 +484,25 @@ def test_update_intent_plaintext_conclusion(put_intent_response, codehook_uri, m
         assert response['intentName'] == 'greeting'
         assert response['intentVersion'] == '1'
 
-def test_update_intent_plaintext_followUp(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
 
+def test_update_intent_plaintext_followUp(put_intent_response, codehook_uri,
+                                          mock_context, lex, aws_lambda,
+                                          monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
 
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex,
+                                       lambda_sdk=aws_lambda)
 
         plaintext = {
             "confirmation": 'some confirmation message',
             'rejection': 'rejection message',
-            'followUpPrompt':'follow on',
-            'followUpRejection':'failed follow on'
+            'followUpPrompt': 'follow on',
+            'followUpRejection': 'failed follow on'
         }
-        put_request = put_intent_request(BOT_NAME,
-                                          INTENT_NAME, UTTERANCES, plaintext=plaintext)
+        put_request = put_intent_request(BOT_NAME, INTENT_NAME, UTTERANCES,
+                                         plaintext=plaintext)
 
         put_request.update(put_request_followUp(plaintext))
         put_request.update({'checksum': 'chksum'})
@@ -459,8 +510,8 @@ def test_update_intent_plaintext_followUp(put_intent_response, codehook_uri, moc
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
-        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+        intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri, UTTERANCES,
+                        None, plaintext=plaintext, max_attempts=3)
         response = intent_builder.put_intent(intent)
 
         stubber.assert_no_pending_responses()
@@ -469,8 +520,10 @@ def test_update_intent_plaintext_followUp(put_intent_response, codehook_uri, moc
         assert response['intentName'] == 'greeting'
         assert response['intentVersion'] == '1'
 
-def test_create_intent_response(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
+
+def test_create_intent_response(put_intent_response, codehook_uri,
+                                mock_context, lex, aws_lambda,
+                                monkeypatch_account):
     """ test the response from create intent """
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
@@ -502,9 +555,9 @@ def test_create_intent_response(put_intent_response, codehook_uri, mock_context,
         assert response['intentName'] == 'greeting'
         assert response['intentVersion'] == '1'
 
+
 def test_create_intent_missing_followUp_plaintext(put_intent_response, codehook_uri, mock_context,
         lex, aws_lambda, monkeypatch_account):
-
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
@@ -530,13 +583,17 @@ def test_create_intent_missing_followUp_plaintext(put_intent_response, codehook_
         stubber.assert_no_pending_responses()
         lambda_stubber.assert_no_pending_responses()
 
-def test_create_intent_conclusion_and_followUp_errors(put_intent_response, codehook_uri, mock_context,
-        lex, aws_lambda, monkeypatch_account):
 
+def test_create_intent_conclusion_and_followUp_errors(put_intent_response,
+                                                      codehook_uri,
+                                                      mock_context,
+                                                      lex, aws_lambda,
+                                                      monkeypatch_account):
 
     with Stubber(aws_lambda) as lambda_stubber, Stubber(lex) as stubber:
         stub_lambda_request(lambda_stubber, codehook_uri)
-        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+        intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex,
+                                      lambda_sdk=aws_lambda)
 
         plaintext = {
             "confirmation": 'some confirmation message',
@@ -546,25 +603,26 @@ def test_create_intent_conclusion_and_followUp_errors(put_intent_response, codeh
         }
 
         stub_not_found_get_request(stubber)
-        put_request = put_intent_request(BOT_NAME,
-                INTENT_NAME, UTTERANCES, plaintext=plaintext)
+        put_request = put_intent_request(BOT_NAME, INTENT_NAME, UTTERANCES,
+                                         plaintext=plaintext)
         put_request.update(put_request_conclusion(plaintext))
 
         stub_intent_creation(stubber, put_intent_response, put_request)
 
         with pytest.raises(Exception) as excinfo:
-            intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri,
-                UTTERANCES, None, plaintext=plaintext, max_attempts=3)
+            intent = Intent(BOT_NAME, INTENT_NAME, codehook_uri, UTTERANCES,
+                            None, plaintext=plaintext, max_attempts=3)
             intent_builder.put_intent(intent)
 
         assert "Can not have conclusion and followUpPrompt" in str(excinfo.value)
+
 
 def test_delete_intent(lex, mock_context, aws_lambda):
     delete_intent_response, delete_request_1 = {}, {'name': INTENT_NAME}
     delete_intent_response, delete_request_2 = {}, {'name': INTENT_NAME_2}
 
-
-    intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+    intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex,
+                                   lambda_sdk=aws_lambda)
 
     with Stubber(lex) as stubber:
         stub_intent_get(stubber, INTENT_NAME)
@@ -576,11 +634,13 @@ def test_delete_intent(lex, mock_context, aws_lambda):
 
         stubber.assert_no_pending_responses()
 
+
 def test_delete_deleted_intent(lex, mock_context, aws_lambda):
     delete_intent_response, delete_request_1 = {}, {'name': INTENT_NAME}
     delete_intent_response, delete_request_2 = {}, {'name': INTENT_NAME_2}
 
-    intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex, lambda_sdk=aws_lambda)
+    intent_builder = IntentBuilder(Mock(), mock_context, lex_sdk=lex,
+                                   lambda_sdk=aws_lambda)
 
     with Stubber(lex) as stubber:
         stub_not_found_get_request(stubber)
