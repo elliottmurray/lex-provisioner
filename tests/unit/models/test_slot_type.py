@@ -1,19 +1,19 @@
-import mock
+import mock  # noqa, flake8 issue
 import pytest
-from pytest_mock import mocker
-from unittest.mock import Mock
+from pytest_mock import mocker  # noqa, flake8 issue
+from unittest.mock import Mock  # noqa, flake8 issue
 
-from models.intent import Intent
 from models.slot_type import SlotType
 
 PIZZASIZE = {
-            "thick": ['thick', 'fat'],
-            "skinny": ['thin', 'skinny']
-        }
+    "thick": ['thick', 'fat'],
+    "skinny": ['thin', 'skinny']
+}
 VOLUME = {
-            "loud": ['loud', 'high'],
-            "quiet": ['quiet', 'low']
-        }
+    "loud": ['loud', 'high'],
+    "quiet": ['quiet', 'low']
+}
+
 
 @pytest.fixture()
 def slots_defs():
@@ -23,6 +23,7 @@ def slots_defs():
         "volume": VOLUME
     }
 
+
 def test_create_slot_type(slots_defs):
     slots = SlotType.create_slot_types(slots_defs)
 
@@ -31,6 +32,7 @@ def test_create_slot_type(slots_defs):
     assert slots[1].name == 'volume'
     assert slots[0].slots == PIZZASIZE
     assert slots[1].slots == VOLUME
+
 
 def test_create_slot_type_prefix(slots_defs):
     slots = SlotType.create_slot_types(slots_defs, prefix='test')

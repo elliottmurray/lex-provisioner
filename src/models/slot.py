@@ -21,7 +21,9 @@ class Slot(object):
     def create_slots(cls, slot_definitions):
         """ create slots """
         slots = []
-        if (slot_definitions is None): return slots
+        if (slot_definitions is None):
+            return slots
+
         for slot_def in slot_definitions:
             slot = Slot(slot_def.get('Name'),
                         slot_def.get('Type'),

@@ -1,5 +1,5 @@
 """ entry point for lambda"""
-import json # pylint: disable=unresolved-import
+import json  # pylint: disable=unresolved-import
 
 # pylint: disable=import-error
 import aws_helper
@@ -13,15 +13,17 @@ from models.slot_type import SlotType
 # pylint: enable=import-error
 
 # initialise logger
-logger = aws_helper.log_config({"RequestId": "CONTAINER_INIT"}) # pylint: disable=invalid-name
+logger = aws_helper.log_config({"RequestId": "CONTAINER_INIT"})  # pylint: disable=invalid-name
 
 logger.info('Logging configured')
 # set global to track init failures
 INIT_FAILED = False
 
+
 def _get_function_arn(function_name, aws_region, aws_account_id, prefix):
     return 'arn:aws:lambda:' + aws_region + ':' + aws_account_id \
         + ':function:' + prefix + function_name
+
 
 def _add_prefix(lex_definition, name_prefix, aws_region, aws_account_id):
     """Add _name_prefix to all resource names in a lex-definition
@@ -85,21 +87,26 @@ def _add_prefix(lex_definition, name_prefix, aws_region, aws_account_id):
         slot_types=slot_types
     )
 
+
 def lex_builder_instance(context):
     """Creates an instance of LexBotBuilder"""
     return LexBotBuilder(logger, context)
+
 
 def slot_builder_instance(context):
     """Creates an instance of SlotBuilder"""
     return SlotBuilder(logger, context)
 
+
 def _name_prefix(event):
     resource_properties = event.get('ResourceProperties')
     name_prefix = resource_properties.get('NamePrefix')
-    return  "" if name_prefix is None else name_prefix
+    return "" if name_prefix is None else name_prefix
+
 
 def _bot_name(event):
     return _name_prefix(event) + event['LogicalResourceId']
+
 
 def _extract_intents(bot_name, resources):
     intents = []
@@ -107,8 +114,10 @@ def _extract_intents(bot_name, resources):
         intents.append(Intent.create_intent(bot_name, json_intent))
     return intents
 
+
 def _validate_intents(intents):
     [intent.validate_intent() for intent in intents]
+
 
 def create(event, context):
     """
@@ -123,7 +132,7 @@ def create(event, context):
 
     slot_types = SlotType.create_slot_types(resources.get('slotTypes'), prefix=_name_prefix(event))
 
-    for slot_type in slot_types:    
+    for slot_type in slot_types:
         slot_builder.put_slot_type(slot_type)
 
     bot_name = _bot_name(event)
@@ -144,6 +153,7 @@ def create(event, context):
         BotVersion=bot_put_response['version']
     )
 
+
 def update(event, context):
     """
     Handle Update events
@@ -152,6 +162,7 @@ def update(event, context):
     the exception message will be sent to CloudFormation Events.
     """
     return create(event, context)
+
 
 def delete(event, context):
     """
@@ -179,12 +190,13 @@ def delete(event, context):
         name = _name_prefix(event) + slot_type
         slot_builder.delete_slot_type(name)
 
+
 def lambda_handler(event, context):
     """
     Main handler function, passes off it's work to crhelper's cfn_handler
     """
     # update the logger with event info
-    global logger # pylint: disable=invalid-name,global-statement
+    global logger  # pylint: disable=invalid-name,global-statement
 
     logger = aws_helper.log_config(event)
     logger.info('event: %s', json.dumps(event, indent=4, sort_keys=True, default=str))

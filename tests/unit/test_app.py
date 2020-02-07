@@ -1,14 +1,14 @@
 """test_app"""
 # pylint: disable=import-error
 
-import mock # pylint: disable=unused-import
-import pytest # pylint: disable=unused-import
+import mock  # pylint: disable=unused-import
+import pytest  # pylint: disable=unused-import
 # pylint: enable=import-error
 
-from pytest_mock import mocker # pylint: disable=unused-import
+from pytest_mock import mocker  # noqa, flake8 issue  pylint: disable=unused-import
 
-import app # pylint: disable=import-error
-import aws_helper # pylint: disable=import-error,unused-import
+import app  # pylint: disable=import-error
+import aws_helper  # noqa, flake8 issue pylint: disable=import-error,unused-import
 from models.intent import Intent
 from models.slot_type import SlotType
 
@@ -20,17 +20,20 @@ LAMBDA_ARN = "arn:aws:lambda:us-east-1:123456789123:function:GreetingLambda"
 SLOT_TYPE_NAME = "pizzasize"
 DESCRIPTION = "friendly AI chatbot overlord"
 SYNONYMS = {
-      "thick": ["thick", "fat"],
-      'thin': ['thin', 'light']
-    }
+    "thick": ["thick", "fat"],
+    'thin': ['thin', 'light']
+}
+
 SLOT_TYPES = {
     "pizzasize": SYNONYMS
 }
+
 
 @pytest.fixture()
 def cfn_create_event():
     """ Generates Custom CFN create Event"""
     return cfn_event("Create")
+
 
 @pytest.fixture()
 def cfn_create_no_prefix_event():
@@ -45,6 +48,7 @@ def cfn_create_no_prefix_event():
 def cfn_delete_event():
     """ Generates Custom CFN delete Event"""
     return cfn_event("Delete")
+
 
 def cfn_event(event_type):
     """ Generates Custom CFN Event"""
@@ -66,25 +70,25 @@ def cfn_event(event_type):
                 'abortStatement': 'abort statement'
             },
             "intents": [
-              {
-                  "Name": 'greeting',
-                  "CodehookArn": LAMBDA_ARN,
-                  "Utterances": ['greetings my friend', 'hello'],
-                  "maxAttempts": 3,
-                  "Plaintext": {
-                      "confirmation": 'a confirmation'
-                  },
-                  "Slots": [
-                    {
-                      "Name": "name",
-                      "Utterances": [
-                        "I am {name}",
-                        "My name is {name}"
-                      ],
-                      "Type": "AMAZON.Person",
-                      "Prompt": "Great thanks, please enter your name."
-                    }
-                  ]
+                {
+                    "Name": 'greeting',
+                    "CodehookArn": LAMBDA_ARN,
+                    "Utterances": ['greetings my friend', 'hello'],
+                    "maxAttempts": 3,
+                    "Plaintext": {
+                        "confirmation": 'a confirmation'
+                    },
+                    "Slots": [
+                        {
+                            "Name": "name",
+                            "Utterances": [
+                                "I am {name}",
+                                "My name is {name}"
+                            ],
+                            "Type": "AMAZON.Person",
+                            "Prompt": "Great thanks, please enter your name."
+                        }
+                    ]
                 },
                 {
                     "Name": 'farewell',
@@ -96,11 +100,11 @@ def cfn_event(event_type):
                     }
                 }
             ],
-            "slotTypes":{
-              SLOT_TYPE_NAME: {
-                "thick": ["thick", "fat"],
-                "thin": ["thin", "light"]
-              }
+            "slotTypes": {
+                SLOT_TYPE_NAME: {
+                    "thick": ["thick", "fat"],
+                    "thin": ["thin", "light"]
+                }
             }
         },
         "ResourceType": "Custom::LexBot",
@@ -108,6 +112,7 @@ def cfn_event(event_type):
         "ServiceToken": "arn:aws:lambda:us-east-1:773592622512:function:lex-provisioner-LexProvisioner-1SADWMED8AJK6",
         "StackId": "arn:aws:cloudformation:us-east-1:773592622512:stack/python-test/db2706d0-2683-11e9-a40a-0a515b01a4a4"
     }
+
 
 def _get_bot_response():
     """ Generates get bot response"""
@@ -154,6 +159,7 @@ def _get_bot_response():
         "lastUpdatedDate": 10012019
     }
 
+
 @pytest.fixture
 def setup(mocker):
     """ setup function """
@@ -162,6 +168,7 @@ def setup(mocker):
     slot_builder = mocker.Mock()
 
     return context, builder, slot_builder
+
 
 def mock_context(mocker):
     """mock_context"""
@@ -172,28 +179,33 @@ def mock_context(mocker):
         'arn:aws:lambda:us-east-1:773592622512:function:elliott-helloworld'
     return context
 
+
 def _extract_intents(bot_name, resources):
     intents = []
     for json_intent in resources.get('intents'):
-      intents.append(Intent.create_intent(bot_name, json_intent))
+        intents.append(Intent.create_intent(bot_name, json_intent))
     return intents
 
+
 def patch_builder(context, builder, monkeypatch):
-    def builder_bot_stub(context): # pylint: disable=unused-argument
+    def builder_bot_stub(context):  # pylint: disable=unused-argument
         return builder
 
     monkeypatch.setattr(app, "lex_builder_instance", builder_bot_stub)
 
+
 def patch_slot_builder(context, slot_builder, monkeypatch):
-    def builder_slot_stub(context): # pylint: disable=unused-argument
+    def builder_slot_stub(context):  # pylint: disable=unused-argument
         return slot_builder
 
     monkeypatch.setattr(app, "slot_builder_instance", builder_slot_stub)
 
+
 @mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
 @mock.patch('models.intent.Intent.validate_intent')
-def test_create_put_bot_no_prefix(validate_intent, mock_intent, mock_bot, cfn_create_no_prefix_event, setup, monkeypatch):
+def test_create_put_bot_no_prefix(validate_intent, mock_intent, mock_bot,
+                                  cfn_create_no_prefix_event, setup, monkeypatch):
     """ test_create_puts_bot"""
     context, builder, _ = setup
     resources = cfn_create_no_prefix_event['ResourceProperties']
@@ -204,7 +216,6 @@ def test_create_put_bot_no_prefix(validate_intent, mock_intent, mock_bot, cfn_cr
     mock_bot.return_value = '1234'
     intent = Intent('a', 'b', 'c', 'd', 'e')
     mock_intent.return_value = intent
-
 
     builder.put.return_value = {"name": 'LexBot', "version": '$LATEST'}
     patch_builder(context, builder, monkeypatch)
@@ -224,6 +235,7 @@ def test_create_put_bot_no_prefix(validate_intent, mock_intent, mock_bot, cfn_cr
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
 
+
 def test_create_put_slottypes_no_prefix(cfn_create_no_prefix_event, setup, monkeypatch):
     """ test_create_put_slottypes_no_prefix"""
     context, builder, slot_builder = setup
@@ -239,6 +251,7 @@ def test_create_put_slottypes_no_prefix(cfn_create_no_prefix_event, setup, monke
     slot_builder.put_slot_type.assert_called_once_with(slot_types[0])
 
     assert response['BotName'] == 'LexBot'
+
 
 @mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
@@ -262,6 +275,7 @@ def test_create_puts(mock_intent, mock_bot, cfn_create_event, setup, monkeypatch
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
+
 def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
     """ test_create_put_slottypes_"""
     context, builder, slot_builder = setup
@@ -278,6 +292,7 @@ def test_create_put_slottypes(cfn_create_event, setup, monkeypatch):
 
     slot_builder.put_slot_type.assert_called_once_with(slot_types[0])
     assert response['BotName'] == BOT_NAME
+
 
 @mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
@@ -298,6 +313,7 @@ def test_update_puts_no_prefix(mock_intent, mock_bot, cfn_create_no_prefix_event
 
     assert response['BotName'] == 'LexBot'
     assert response['BotVersion'] == BOT_VERSION
+
 
 @mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
@@ -321,15 +337,18 @@ def test_update_puts(mock_intent, mock_bot, cfn_create_event, setup, monkeypatch
     assert response['BotName'] == BOT_NAME
     assert response['BotVersion'] == BOT_VERSION
 
+
 @pytest.mark.skip(reason="need to work out in CFN what is currently deployed and new")
 def test_update_deleted_slot(cfn_create_event, setup, monkeypatch):
     context, _, _ = setup
     app.update(cfn_create_event, context)
 
+
 @mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
 @mock.patch('models.intent.Intent.validate_intent')
-def test_delete(validate_intent, mock_intent, mock_bot, cfn_delete_event, setup, monkeypatch):
+def test_delete(validate_intent, mock_intent, mock_bot, cfn_delete_event,
+                setup, monkeypatch):
     """ test_delete """
     context, builder, slot_builder = setup
 
@@ -343,15 +362,14 @@ def test_delete(validate_intent, mock_intent, mock_bot, cfn_delete_event, setup,
     app.delete(cfn_delete_event, context)
 
     builder.delete.assert_called_once_with('1234')
-
     slot_builder.delete_slot_type.assert_called_once_with(PREFIX + SLOT_TYPE_NAME)
 
 
 @mock.patch('models.bot.Bot.create_bot')
 @mock.patch('models.intent.Intent.create_intent')
 @mock.patch('models.intent.Intent.validate_intent')
-def test_delete_no_prefix(validate_intent, mock_intent, mock_bot, cfn_delete_event, setup, monkeypatch):
-# def test_delete_no_prefix(mock_intent_cls, cfn_delete_event, setup, monkeypatch):
+def test_delete_no_prefix(validate_intent, mock_intent, mock_bot,
+                          cfn_delete_event, setup, monkeypatch):
     """ test_delete_no_prefix """
     context, builder, slot_builder = setup
     cfn_delete_event['ResourceProperties'].pop('NamePrefix')
