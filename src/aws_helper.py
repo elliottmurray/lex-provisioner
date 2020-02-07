@@ -3,25 +3,13 @@
     In log_config, formatting removed (i.e. happy to use default aws-lambda log format)
 """
 
-###################################################################################################
-#### Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-####
-#### Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file
-#### except in compliance with the License. A copy of the License is located at
-####
-####     http://aws.amazon.com/apache2.0/
-####
-#### or in the "license" file accompanying this file. This file is distributed on an "AS IS"
-#### BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#### License for the specific language governing permissions and limitations under the License.
-###################################################################################################
-
 from __future__ import print_function
 import logging
 import threading
 import os
 import json
 from botocore.vendored import requests
+
 
 def log_config(event, loglevel=None, botolevel=None):
     if 'ResourceProperties' in event.keys():
@@ -43,10 +31,10 @@ def log_config(event, loglevel=None, botolevel=None):
     return mainlogger
 
 
-def send_cfn_confirmation(event, context, responseStatus, responseData, physicalResourceId,
-         logger, reason=None):
+def send_cfn_confirmation(event, context, responseStatus, responseData,
+                          physicalResourceId, logger, reason=None):
 
-    if (os.environ['CONFIRM'] == 'False'): # is there a better way of doing
+    if (os.environ['CONFIRM'] == 'False'):  # is there a better way of doing
         # this? I think there are some runtime options with SAM
         logger.info("In DEBUG mode and not confirming")
         return
@@ -90,8 +78,8 @@ def send_cfn_confirmation(event, context, responseStatus, responseData, physical
 # Function that executes just before lambda excecution times out
 def timeout(event, context, logger):
     logger.error("Execution is about to time out, sending failure message")
-    send_cfn_confirmation(event, context, "FAILED", None, None, reason="Execution timed out",
-         logger=logger)
+    send_cfn_confirmation(event, context, "FAILED", None, None,
+                          reason="Execution timed out", logger=logger)
 
 
 # Handler function
@@ -116,11 +104,11 @@ def cfn_handler(event, context, create, update, delete, logger, init_failed):
     # handle init failures
     if init_failed:
         send_cfn_confirmation(event, context, "FAILED", responseData, physicalResourceId,
-             logger, init_failed)
+                              logger, init_failed)
         raise
 
     # Setup timer to catch timeouts
-    t = threading.Timer((context.get_remaining_time_in_millis()/1000.00)-0.5,
+    t = threading.Timer((context.get_remaining_time_in_millis() / 1000.00) - 0.5,
                         timeout, args=[event, context, logger])
     t.start()
 
@@ -136,13 +124,13 @@ def cfn_handler(event, context, create, update, delete, logger, init_failed):
 
         # Send response back to CloudFormation
         logger.info("Completed successfully, sending response to cfn")
-        send_cfn_confirmation(event, context, "SUCCESS", responseData, physicalResourceId,
-             logger=logger)
+        send_cfn_confirmation(event, context, "SUCCESS", responseData,
+                              physicalResourceId, logger=logger)
 
     # Catch any exceptions, log the stacktrace, send a failure back to
     # CloudFormation and then raise an exception
     except Exception as e:
         logger.error(e, exc_info=True)
         send_cfn_confirmation(event, context, "FAILED", responseData, physicalResourceId,
-             reason=e, logger=logger)
+                              reason=e, logger=logger)
         raise

@@ -3,15 +3,15 @@
 """ Provision AWS Lex resources using python SDK
 """
 
-import traceback
-import time
-import boto3
+# import time
+# import boto3
 from botocore.exceptions import ClientError
 
 from intent_builder import IntentBuilder
-from slot_builder import SlotBuilder
+# from slot_builder import SlotBuilder
 from lex_helper import LexHelper
-from models.intent import Intent
+# from models.intent import Intent
+
 
 class LexBotBuilder(LexHelper):
 
@@ -76,12 +76,12 @@ class LexBotBuilder(LexHelper):
         return bot_response
 
     def delete(self, bot):
-      """delete bot"""
+        """delete bot"""
         # TODO what about deleting published version(s) of the bot?
-      self._delete_bot(bot.name)
-      self._delete_intents(bot.name, bot.intents)
+        self._delete_bot(bot.name)
+        self._delete_intents(bot.name, bot.intents)
 
-      self._logger.info('Successfully deleted bot and associated resources')
+        self._logger.info('Successfully deleted bot and associated resources')
 
     def _put_intents(self, bot_name, intents):
         intent_versions = []
@@ -102,7 +102,7 @@ class LexBotBuilder(LexHelper):
     def _bot_exists(self, name, versionOrAlias='$LATEST'):
         return self._get_resource(self._lex_sdk.get_bot,
                                   'get_bot',
-                                  {'name':name, 'versionOrAlias':versionOrAlias})
+                                  {'name': name, 'versionOrAlias': versionOrAlias})
 
     def _create_bot(self, bot_name, bot_properties):
         bot_exists, checksum = self._bot_exists(bot_name)
@@ -150,7 +150,7 @@ class LexBotBuilder(LexHelper):
                 bot_exists, _ = self._bot_exists(bot_name)
                 if(bot_exists):
                     self._delete_lex_resource(self._lex_sdk.delete_bot, 'delete_bot',
-                            name=bot_name)
+                                              name=bot_name)
 
                     self._logger.info('deleted bot: %s', bot_name)
                     break

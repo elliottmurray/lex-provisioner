@@ -127,31 +127,33 @@ class IntentBuilder(LexHelper, object):
         return follow_up
 
     def _put_request_confirmation(self, request, plaintext, max_attempts):
-        if (plaintext.get('rejection') is not None) and (plaintext.get('confirmation') is not None):
+        if (plaintext.get('rejection') is not None
+                and plaintext.get('confirmation') is not None):
             request.update(
                 self._get_confirmation_message(plaintext, max_attempts))
 
-        elif not (plaintext.get('rejection') is None and plaintext.get('confirmation') is None):
-            raise ValidationError("Must have both rejection and " +
-                                  "confirmation or neither. " +
-                                  "Had ".format(plaintext))
+        elif not (plaintext.get('rejection') is None
+                  and plaintext.get('confirmation') is None):
+            raise ValidationError("Must have both rejection and "
+                                  + "confirmation or neither. "
+                                  + "Had ".format(plaintext))
 
     def _put_request_followUp(self, request, plaintext, max_attempts):
         if plaintext.get('followUpPrompt') is None:
             return
 
         if plaintext.get('conclusion') is not None:
-            raise ValidationError('Can not have conclusion and ' +
-                                  'followUpPrompt in intent %s',
+            raise ValidationError('Can not have conclusion and '
+                                  + 'followUpPrompt in intent %s',
                                   request.get('intent_name'))
 
         if (plaintext.get('followUpPrompt') is not None) and (plaintext.get('followUpRejection') is not None):
 
             request.update(self._get_followup_message(plaintext, max_attempts))
         elif not plaintext.get('followUpPrompt') is None and plaintext.get('followUpPrompt') is None:
-            raise ValidationError("Must have both follow up rejection " +
-                                  "and confirmation or neither. " +
-                                  "Had ".format(plaintext))
+            raise ValidationError("Must have both follow up rejection "
+                                  + "and confirmation or neither. "
+                                  + "Had ".format(plaintext))
 
     def _put_request_conclusion(self, request, plaintext):
         if plaintext.get('conclusion') is None:
@@ -242,8 +244,8 @@ class IntentBuilder(LexHelper, object):
                     SourceArn=self._get_intent_arn(intent.intent_name)
                 )
                 self._logger.info(
-                    'Response for adding intent permission to lambda: ' +
-                    '%s', add_permission_response
+                    'Response for adding intent permission to lambda: '
+                    + '%s', add_permission_response
                 )
             except ClientError as ex:
                 if ex.response['Error']['Code'] == 'ResourceConflictException':

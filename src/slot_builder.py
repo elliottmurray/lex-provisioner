@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from lex_helper import LexHelper
 # pylint: enable=import-error
 
+
 class SlotBuilder(LexHelper):
     """ slot builder """
     def __init__(self, logger, context, lex_sdk=None):
@@ -25,7 +26,7 @@ class SlotBuilder(LexHelper):
     def put_slot_type(self, slot_type):
         """ put slot type by name and synonyms """
         self._logger.info('Put slot type %s', slot_type.name)
-        
+
         enumeration = []
         for key in slot_type.slots:
             value = slot_type.slots[key]
@@ -35,13 +36,16 @@ class SlotBuilder(LexHelper):
         exists, checksum = self._slot_type_exists(slot_type.name)
         response = None
         if exists:
-            response = self._lex_sdk.put_slot_type(name=slot_type.name, description=slot_type.name,
-                                               enumerationValues=enumeration, checksum=checksum,
-                                               valueSelectionStrategy='ORIGINAL_VALUE')
+            response = self._lex_sdk.put_slot_type(name=slot_type.name,
+                                                   description=slot_type.name,
+                                                   enumerationValues=enumeration,
+                                                   checksum=checksum,
+                                                   valueSelectionStrategy='ORIGINAL_VALUE')
         else:
-          response = self._lex_sdk.put_slot_type(name=slot_type.name, description=slot_type.name,
-                                           enumerationValues=enumeration,
-                                           valueSelectionStrategy='ORIGINAL_VALUE')
+            response = self._lex_sdk.put_slot_type(name=slot_type.name,
+                                                   description=slot_type.name,
+                                                   enumerationValues=enumeration,
+                                                   valueSelectionStrategy='ORIGINAL_VALUE')
 
         self._logger.info("Successfully created slot type %s", slot_type.name)
         return response
@@ -60,12 +64,12 @@ class SlotBuilder(LexHelper):
     def _in_use(self, ex):
         func_name = 'delete_slot_type'
         if ex.response['Error']['Code'] == 'ResourceInUseException':
-            self._logger.info('Lex %s call failed because resource' + \
-                    ' in use', func_name)
+            self._logger.info('Lex %s call failed because resource'
+                              + ' in use', func_name)
             return False
         return True
 
     def _slot_type_exists(self, name, versionOrAlias='$LATEST'):
         return self._get_resource(self._lex_sdk.get_slot_type,
                                   'get_slot_type',
-                                  {'name':name, 'version':versionOrAlias})
+                                  {'name': name, 'version': versionOrAlias})

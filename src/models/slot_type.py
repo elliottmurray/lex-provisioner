@@ -1,4 +1,5 @@
-from models.intent import Intent
+# from models.intent import Intent
+
 
 class SlotType(object):
 
@@ -16,14 +17,14 @@ class SlotType(object):
 
         if isinstance(self, other.__class__):
             return (self.name == other.name
-                and self.slots == other.slots)
+                    and self.slots == other.slots)
         return False
 
     @classmethod
     def create_slot_types(cls, resources, prefix=''):
         slot_types = []
 
-        if resources == None:
+        if resources is None:
             return slot_types
         for slot_type in resources:
             name = prefix + slot_type

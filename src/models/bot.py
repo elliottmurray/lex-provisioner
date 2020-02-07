@@ -1,5 +1,3 @@
-from models.intent import Intent
-
 class Bot(object):
 
     def __init__(self, name, intents, messages, **kwargs):
@@ -17,9 +15,9 @@ class Bot(object):
 
         if isinstance(self, other.__class__):
             return (self.name == other.name
-                and self.intents == other.intents
-                and self.messages == other.messages
-                and self.attrs == other.attrs)
+                    and self.intents == other.intents
+                    and self.messages == other.messages
+                    and self.attrs == other.attrs)
         return False
 
     @classmethod
@@ -28,5 +26,3 @@ class Bot(object):
                    intents,
                    messages,
                    **kwargs)
-
-

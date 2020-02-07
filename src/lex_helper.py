@@ -5,6 +5,7 @@ import traceback
 import boto3
 from botocore.exceptions import ClientError
 
+
 class LexHelper(object):
     MAX_DELETE_TRIES = 5
     RETRY_SLEEP = 5
@@ -18,25 +19,25 @@ class LexHelper(object):
 
     def _get_resource(self, func, func_name, properties):
         try:
-          get_response = func(**properties)
+            get_response = func(**properties)
 
-          self._logger.info(get_response)
-          checksum = get_response['checksum']
+            self._logger.info(get_response)
+            checksum = get_response['checksum']
 
-          return True, checksum
+            return True, checksum
 
         except ClientError as ex:
-          http_status_code = None
-          if 'ResponseMetadata' in ex.response:
-              response_metadata = ex.response['ResponseMetadata']
-              if 'HTTPStatusCode' in response_metadata:
-                  http_status_code = response_metadata['HTTPStatusCode']
-          if http_status_code == 404:
-              self._logger.info('%s %s not found', func_name, properties['name'])
-              return False, None
+            http_status_code = None
+            if 'ResponseMetadata' in ex.response:
+                response_metadata = ex.response['ResponseMetadata']
+                if 'HTTPStatusCode' in response_metadata:
+                    http_status_code = response_metadata['HTTPStatusCode']
+            if http_status_code == 404:
+                self._logger.info('%s %s not found', func_name, properties['name'])
+                return False, None
 
-          self._logger.error('Lex %s call for %s failed', func_name, properties['name'])
-          raise ex
+            self._logger.error('Lex %s call for %s failed', func_name, properties['name'])
+            raise ex
 
     def _create_lex_resource(self, func, func_name, properties):
         try:
@@ -91,7 +92,7 @@ class LexHelper(object):
     def _get_intent_arn(self, intent_name, prefix=''):
         aws_account_id, aws_region = self._get_aws_details()
         return 'arn:aws:lex:' + aws_region + ':' + aws_account_id \
-                + ':intent:' + prefix +  intent_name + ':*'
+               + ':intent:' + prefix + intent_name + ':*'
 
     def _get_function_arn(self, function_name, prefix=''):
         aws_account_id, aws_region = self._get_aws_details()
@@ -100,8 +101,8 @@ class LexHelper(object):
 
     def _not_found(self, ex, func_name):
         if ex.response['Error']['Code'] == 'NotFoundException':
-            self._logger.info('Lex %s call failed because resource' + \
-                    ' not exist', func_name)
+            self._logger.info('Lex %s call failed because resource'
+                              + ' not exist', func_name)
             return True
         return False
 

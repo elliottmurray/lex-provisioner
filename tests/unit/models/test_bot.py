@@ -1,18 +1,16 @@
-import mock
 import pytest
-from pytest_mock import mocker
-from unittest.mock import Mock
 
 from models.bot import Bot
-from models.intent import Intent
+
 
 @pytest.fixture()
 def bot_properties():
     """ Generates bot json"""
     return {
-        "Name": "name",        
+        "Name": "name",
         "Description": "Desc here"
     }
+
 
 @pytest.fixture()
 def invalid_slots_defs():
@@ -22,6 +20,7 @@ def invalid_slots_defs():
         "Type": "AMAZON.Person",
         "Prompt": "Great thanks, please enter your name."
     }]
+
 
 def test_create_bot(bot_properties):
     name = 'test name'
@@ -33,4 +32,3 @@ def test_create_bot(bot_properties):
     assert bot.intents == intents
     assert bot.messages == messages
     assert bot.attrs == bot_properties
-
