@@ -136,7 +136,7 @@ class IntentBuilder(LexHelper, object):
                   and plaintext.get('confirmation') is None):
             raise ValidationError("Must have both rejection and "
                                   + "confirmation or neither. "
-                                  + "Had ".format(plaintext))
+                                  + "Had {0}".format(plaintext))
 
     def _put_request_followUp(self, request, plaintext, max_attempts):
         if plaintext.get('followUpPrompt') is None:
@@ -153,7 +153,7 @@ class IntentBuilder(LexHelper, object):
         elif not plaintext.get('followUpPrompt') is None and plaintext.get('followUpPrompt') is None:
             raise ValidationError("Must have both follow up rejection "
                                   + "and confirmation or neither. "
-                                  + "Had ".format(plaintext))
+                                  + "Had {0}".format(plaintext))
 
     def _put_request_conclusion(self, request, plaintext):
         if plaintext.get('conclusion') is None:

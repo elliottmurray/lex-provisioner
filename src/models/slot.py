@@ -1,3 +1,6 @@
+import re
+
+
 class Slot(object):
     """ the slot class """
     def __init__(self, name, slot_type, prompt, utterances):
@@ -10,6 +13,11 @@ class Slot(object):
     def validate_slot(self):
         if self.utterances is None:
             raise Exception("Utterances missing in slot %s", self.name)
+
+        p = re.compile('{' + self.name + '}')
+        for utterance in self.utterances:
+            if p.search(utterance) is None:
+                raise Exception("Utterance {0} does not contain {1}".format(utterance, self.name))
 
     def __eq__(self, other):
         """Override the default Equals behavior"""
