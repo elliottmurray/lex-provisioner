@@ -54,7 +54,6 @@ jobs:
       - run:
           name: deploy to AWS
           command: |
-            bin/delete lex-provisioner
             bin/deploy lex-provisioner
 orbs:
   aws-serverless: circleci/aws-serverless@1.0.1
