@@ -1,13 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-    Chatbot provisioner
 
-    Lex Provisioner SAM Template
-Globals:
-    Function:
-        Timeout: 300
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: my-app
+    Author: Elliott Murray
+    Description: >
+      Chatbot provisioner SAR Application
 
+      Lex Provisioner SAM Template
 Resources:
     ManageLexRole:
         Type: 'AWS::IAM::Role'

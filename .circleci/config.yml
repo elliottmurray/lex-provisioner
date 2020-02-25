@@ -32,7 +32,7 @@ jobs:
             pip install tox
             tox
       - store_artifacts:
-          path: htmlcov 
+          path: htmlcov
             #      - save_cache:
             #          paths:
             #            - ./venv
@@ -54,8 +54,8 @@ jobs:
       - run:
           name: deploy to AWS
           command: |
-            bin/delete lex-provisioner
-            bin/deploy lex-provisioner
+            bin/publish {{ .BuildNum }}
+
 orbs:
   aws-serverless: circleci/aws-serverless@1.0.1
 workflows:
@@ -69,5 +69,5 @@ workflows:
             - build
           filters:
             branches:
-              only: master 
+              only: master
 
