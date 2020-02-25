@@ -10,6 +10,6 @@ echo "Packaging..."
 
 sam package  -t template.yaml --output-template-file packaged.yaml --s3-bucket $BUCKET_NAME > /dev/null 2>&1
 
-echo "Publishing..."
+echo "Publishing build number $BUILD_NUMBER"
 sam publish -t packaged.yaml --semantic-version $BUILD_NUMBER
 

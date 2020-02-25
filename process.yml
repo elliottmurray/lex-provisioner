@@ -1,0 +1,168 @@
+# Orb 'circleci/aws-serverless@1.0.1' resolved to 'circleci/aws-serverless@1.0.1'
+# WARNING: Command 'deploy' in orbs.aws-serverless.commands.deploy may override built-in CircleCI command 'deploy'
+version: 2
+jobs:
+  build:
+    docker:
+    - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+    - checkout
+    - run:
+        name: run tests
+        command: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install tox
+          tox
+    - store_artifacts:
+        path: htmlcov
+  deploy:
+    machine: true
+    steps:
+    - checkout
+    - run:
+        name: Install AWS CLI
+        command: |
+          export PIP=$(which pip pip3 | head -1)
+          if [[ -n $PIP ]]; then
+            if which sudo > /dev/null; then
+              sudo $PIP install awscli --upgrade
+            else
+              # This installs the AWS CLI to ~/.local/bin. Make sure that ~/.local/bin is in your $PATH.
+              $PIP install awscli --upgrade --user
+            fi
+          elif [[ $(which unzip curl | wc -l) -eq 2 ]]; then
+            cd
+            curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+            unzip awscli-bundle.zip
+            if which sudo > /dev/null; then
+              sudo ~/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+            else
+              # This installs the AWS CLI to the default location (~/.local/lib/aws) and create a symbolic link (symlink) at ~/bin/aws. Make sure that ~/bin is in your $PATH.
+              awscli-bundle/install -b ~/bin/aws
+            fi
+            rm -rf awscli-bundle*
+            cd -
+          else
+            echo "Unable to install AWS CLI. Please install pip."
+            exit 1
+          fi
+    - run:
+        name: Configure AWS Access Key ID
+        command: |
+          aws configure set aws_access_key_id \
+          $AWS_ACCESS_KEY_ID \
+          --profile default
+    - run:
+        name: Configure AWS Secret Access Key
+        command: |
+          aws configure set aws_secret_access_key \
+          $AWS_SECRET_ACCESS_KEY \
+          --profile default
+    - run:
+        name: Configure AWS default region
+        command: |
+          aws configure set region $AWS_DEFAULT_REGION \
+          --profile default
+    - run:
+        command: |
+          curl -fsSL "https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh" | bash
+          /home/linuxbrew/.linuxbrew/bin/brew shellenv >> $BASH_ENV
+        name: Install Homebrew (for Linux)
+    - run:
+        command: |
+          brew tap aws/tap
+          brew install aws-sam-cli
+          sam --version
+        name: Install the AWS SAM CLI
+    - run:
+        name: deploy to AWS
+        command: |
+          bin/publish {{ .BuildNum }}
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+    - build
+    - deploy:
+        filters:
+          branches:
+            only: /^master|^publish/
+        requires:
+        - build
+        context: aws_lex
+
+# Original config.yml file:
+# # Python CircleCI 2.0 configuration file
+# #
+# # Check https://circleci.com/docs/2.0/language-python/ for more details
+# #
+# version: 2.1
+# jobs:
+#   build:
+#     docker:
+#       - image: circleci/python:3.7
+# 
+#       # Specify service dependencies here if necessary
+#       # CircleCI maintains a library of pre-built images
+#       # documented at https://circleci.com/docs/2.0/circleci-images/
+# 
+#     working_directory: ~/repo
+# 
+#     steps:
+#       - checkout
+# 
+#       # Download and cache dependencies
+#       #      - restore_cache:
+#       #          keys:
+#       #            - v1-dependencies-{{ checksum \"requirements.txt\" }}
+#       #            # fallback to using the latest cache if no exact match is found
+#       #            - v1-dependencies-
+# 
+#       - run:
+#           name: run tests
+#           command: |
+#             python3 -m venv venv
+#             . venv/bin/activate
+#             pip install tox
+#             tox
+#       - store_artifacts:
+#           path: htmlcov
+#             #      - save_cache:
+#             #          paths:
+#             #            - ./venv
+#             #          key: v1-dependencies-{{ checksum \"requirements.txt\" }}
+# 
+#   deploy:
+#     executor: aws-serverless/default
+# 
+#     steps:
+#       - checkout
+#       - aws-serverless/install
+#       # Download and cache dependencies
+#       #      - restore_cache:
+#       #          keys:
+#       #            - v1-dependencies-{{ checksum \"requirements.txt\" }}
+#       #            # fallback to using the latest cache if no exact match is found
+#       #            - v1-dependencies-
+# 
+#       - run:
+#           name: deploy to AWS
+#           command: |
+#             bin/publish {{ .BuildNum }}
+# 
+# orbs:
+#   aws-serverless: circleci/aws-serverless@1.0.1
+# workflows:
+#   version: 2
+#   build-deploy:
+#     jobs:
+#       - build
+#       - deploy:
+#           context: aws_lex
+#           requires:
+#             - build
+#           filters:
+#             branches:
+#               only: /^master|^publish/
