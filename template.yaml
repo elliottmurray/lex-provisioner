@@ -63,6 +63,8 @@ Resources:
             CodeUri: src/
             Handler: app.lambda_handler
             Runtime: python3.7
+            Timeout: 60
+            MemorySize: 256
             Environment:
                 Variables:
                     CONFIRM: TRUE,
