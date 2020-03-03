@@ -54,7 +54,9 @@ jobs:
       - run:
           name: deploy to AWS
           command: |
-            bin/publish $CIRCLE_BUILD_NUM
+            bin/package
+            bin/publish '0.0.${CIRCLE_BUILD_NUM}'
+            bin/publish 'latest'
 
 orbs:
   aws-serverless: circleci/aws-serverless@1.0.1

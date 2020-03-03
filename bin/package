@@ -1,0 +1,10 @@
+#!/bin/sh
+
+defaultBucket='elliott-provisioner'
+
+BUCKET_NAME=${1:-$defaultBucket}
+
+echo "Packaging..."
+
+sam package  -t template.yaml --output-template-file packaged.yaml --s3-bucket $BUCKET_NAME > /dev/null 2>&1
+
