@@ -56,7 +56,7 @@ jobs:
           command: |
             bin/package
             bin/publish '0.0.${CIRCLE_BUILD_NUM}'
-            bin/publish 'latest'
+            bin/publish 0.0.0
 
 orbs:
   aws-serverless: circleci/aws-serverless@1.0.1
